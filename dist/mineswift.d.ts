@@ -29,6 +29,11 @@ declare class Minefield extends Array<any> {
         rng: Function;
     });
     /**
+     * Calculates and assigns the nearby number of mines of each cell.
+     * @returns The nearby number of mines for each cell has been calculated.
+     */
+    resetMines(): void;
+    /**
      * Returns a number-only simplified version of the minefield.
      *
      *  - -1: A mine;
@@ -45,11 +50,6 @@ declare class Minefield extends Array<any> {
      */
     concatenate(): any[];
     /**
-     * Calculates and assigns the nearby number of mines of each cell.
-     * @returns The nearby number of mines for each cell has been calculated.
-     */
-    resetMines(): void;
-    /**
      * Opens a given cell and may open nearby ones following the minesweeper game rules.
      * @param {Array<Number>} position The position of the cell to open "[row, col]".
      * @param {Object} opts Optional settings.
@@ -57,6 +57,7 @@ declare class Minefield extends Array<any> {
      * @param {Boolean} opts.nearbyOpening Allows the opening of nearby cells if the given cell is already open and its nearby mines number matches the number of nearby flagged cells.
      * @param {Boolean} opts.nearbyFlagging Allows the flagging of nearby cells if the given cell is already open and its nearby mines number matches the number of nearby closed cells.
      * @returns {Array<Array>>} An array containing arrays with the coordinates of the updated cells.
+     * @throws If the cell position is invalid.
      */
     open([row, col]: Array<number>, { firstMove, nearbyOpening, nearbyFlagging }?: {
         firstMove: boolean;
@@ -72,6 +73,7 @@ declare class Minefield extends Array<any> {
      * @param {Number} position.col The column of the cell to start from.
      * @param {Boolean} restore Whether to restore the Minefield to all cells closed at the end.
      * @returns {Boolean} Whether the minefield is solvable from a given cell (by not guessing).
+     * @throws If the cell position is invalid.
      */
     isSolvableFrom([row, col]: Array<number>, restore?: boolean): boolean;
     /**
@@ -83,20 +85,21 @@ declare class Minefield extends Array<any> {
      */
     getHints(accurateHint?: boolean): Array<any[]>;
     /**
-     * Shorthand for getting a cell by doing "minefield.cellAt(position)" instead of "minefield[ position[0] ][ position[1] ]".
-     * @param {Array<Number>} position The position of the desired cell to start from. Row and column can be either in an array or passed as-is.
-     * @returns {Object} The cell object at the given position.
-     */
-    cellAt(...position: Array<number>): any;
-    /**
      * Finds the position of the cells directly around a given cell.
      * @param {Array<Number>} position The position of the desired cell "[row, col]".
      * @param {Number} position.row The row of the desired cell.
      * @param {Number} position.col The column of the desired cell.
      * @param {Boolean} includeSelf If true, also include the position of the given cell.
      * @returns {Array} An Array containing the cells directly around the given one.
+     * @throws If the cell position is invalid.
      */
     getNearbyCells([row, col]: Array<number>, includeSelf?: boolean): any[];
+    /**
+     * Shorthand for getting a cell by doing "minefield.cellAt(position)" instead of "minefield[ position[0] ][ position[1] ]".
+     * @param {Array<Number>} position The position of the desired cell to start from. Row and column can be either in an array or passed as-is.
+     * @returns {Object} The cell object at the given position.
+     */
+    cellAt(...position: Array<number>): any;
     /**
      * @returns {Boolean} a Boolean value that indicates whether the game is new (before the first move).
      */
@@ -126,11 +129,15 @@ declare class Minefield extends Array<any> {
      *  - X: An open mine
      *
      * @param {Object} opts Optional settings.
+     * @param {Boolean} opts.positions Whether to include the grid row and column positions.
+     * @param {Boolean} opts.color Whether to include command line colors in the visualization.
      * @param {Boolean} opts.uncover Whether to show every cell as if they were open.
      * @param {Boolean} opts.log Whether to log the visualization.
      * @returns {String} The visualization string.
      */
-    visualize({ uncover, log }?: {
+    visualize({ positions, color, uncover, log }?: {
+        positions: boolean;
+        color: boolean;
         uncover: boolean;
         log: boolean;
     }): string;

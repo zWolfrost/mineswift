@@ -32,7 +32,9 @@ Creates a minefield with 4 rows, 6 columns and 3 mines, which is a 2D-Array with
 
 &nbsp;
 ## Minefield Object Methods
-*Note that the methods are fully documented in the JSDOC methods comments*
+*Note that the methods are fully documented in the JSDOC methods comments.*
+
+*Also, the Minefield class extends the Array class, so you can also use the array default methods.*
 
 | Method            | Description
 |:-:                |:-
@@ -57,6 +59,16 @@ Creates a minefield with 4 rows, 6 columns and 3 mines, which is a 2D-Array with
 | mines             | (getter) The number of mines in the current minefield.
 | flags             | (getter) The number of flagged cells in the current minefield.
 
+&nbsp;
+## Changelog & Breaking Changes
+**Watch out for this section if you wish to migrate to a different version.** <br>
+
+- **v1.1.0**:
+<br>- Added "positions" and "color" options in the "visualize" method.
+<br>- Added evaluation and error handling for the position parameter.
+<br>- Fixed a bug where the "isSolvableFrom" method would crash if the chosen cell had 1 or more mines around.
+<br>- Fixed a bug where the number of mines would become very unbalanced as the board became more "rectangular".
+<br>- Fixed a bug where the "open" method would return the same cell as updated multiple times.
 
 &nbsp;
 ## Found a bug and/or need help?
