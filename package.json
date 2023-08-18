@@ -1,0 +1,28 @@
+{
+  "name": "mineswift",
+  "version": "1.0.0",
+  "description": "An efficient node.js Minesweeper engine with zero dependencies that can be used to easily create minefields and play without having to code any logic.",
+  "main": "src/mineswift.js",
+  "types": "dist/mineswift.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zWolfrost/mineswift.git"
+  },
+  "author": "zWolfrost",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/zWolfrost/mineswift/issues"
+  },
+  "homepage": "https://github.com/zWolfrost/mineswift#readme",
+  "keywords": [
+    "minesweeper",
+    "engine",
+    "class",
+    "game",
+    "minefield",
+    "algorithm",
+    "board",
+    "node",
+    "nodejs"
+ ]
+}

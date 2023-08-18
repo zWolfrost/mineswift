@@ -1,0 +1,11 @@
+{
+  "files": ["src/mineswift.js"],
+  "compilerOptions": {
+    "target": "ES6",
+    "allowJs": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "outDir": "dist",
+    "declarationMap": true
+  }
+}
