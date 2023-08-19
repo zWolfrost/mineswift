@@ -39,6 +39,7 @@ Creates a minefield with 4 rows, 6 columns and 3 mines, which is a 2D-Array with
 | Method            | Description
 |:-:                |:-
 | **new Minefield** | Creates a new minefield with the given rows, columns and mines number (and randomizes them).
+| randomize         | Replaces the Minefield object with a new Minefield object with the same rows, columns and mines number.
 | simplify          | Returns a Number-Only 2D array version of the minefield.
 | concatenate       | Returns a version of the minefield where all the rows are concatenated in a single array. Useful for looping each cell quickly.
 | resetMines        | Resets the nearby-mines number for each cell in the current minefield.
@@ -69,6 +70,12 @@ Creates a minefield with 4 rows, 6 columns and 3 mines, which is a 2D-Array with
 <br>- Fixed a bug where the "isSolvableFrom" method would crash if the chosen cell had 1 or more mines around.
 <br>- Fixed a bug where the number of mines would become very unbalanced as the board became more "rectangular".
 <br>- Fixed a bug where the "open" method would return the same cell as updated multiple times.
+
+- **v1.2.0**:
+<br>- Added "randomize" method.
+<br>- Added "unicode" and "highlight" options in the "visualize" method.
+<br>- The "isSolvableFrom" method will return false if the chosen cell is a mine, instead of moving it in the upper left corner (like "open" does when "firstMove" is true).
+<br>- Further optimized the "isSolvableFrom" method.
 
 &nbsp;
 ## Found a bug and/or need help?

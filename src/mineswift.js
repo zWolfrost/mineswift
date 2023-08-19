@@ -16,7 +16,7 @@
 class Minefield extends Array
 {
    /**
-    * Creates a new minefield with the given rows, columns and mines number (and randomizes them).
+    * Creates a new minefield with the given rows, columns and mines number (and randomizes the mines using the fisher-yates shuffle algorithm).
     *
     * Remember that the number of rows is the height of the minefield, while the number of columns is the width.
     * @param {Number} rows The number of rows of the minefield (1-based).
@@ -57,7 +57,7 @@ class Minefield extends Array
          [ this[row][col], this[row2][col2] ] = [ this[row2][col2], this[row][col] ];
       }
 
-      //Calculate nearby mines number for each cell
+      //Assigns position and nearby mines number for each cell.
       for (let i=0; i<this.rows; i++)
       {
          for (let j=0; j<this.cols; j++)
@@ -75,6 +75,16 @@ class Minefield extends Array
    }
 
 
+
+   /**
+    * Replaces this Minefield object with a new Minefield object with the same rows, columns and mines number.
+    * @param rng A function that returns a random decimal number between 0 and 1 (default: {@link Math.random}).
+    * @returns The minefield has been randomized
+    */
+   randomize(rng = Math.random)
+   {
+      Object.assign(this, new Minefield(this.rows, this.cols, { mines: this.mines, rng: rng }))
+   }
 
    /**
     * Calculates and assigns the nearby number of mines of each cell.
@@ -240,6 +250,8 @@ class Minefield extends Array
     * Checks if a minefield is solvable from a given cell (by not guessing).
     *
     * WARNING! This method gets resource-intensive the more the minefield is big.
+    *
+    * Note that it might return false on just really hard to solve minefields (It is very unlikely to find minefields that hard to solve, though.)
     * @param {Array<Number>} position The position of the cell to start from "[row, col]".
     * @param {Number} position.row The row of the cell to start from.
     * @param {Number} position.col The column of the cell to start from.
@@ -249,13 +261,33 @@ class Minefield extends Array
     */
    isSolvableFrom([row, col], restore=true)
    {
+      let firstCell = this.cellAt(row, col)
+      firstCell.isOpen = true
+
+      if (firstCell.mines !== 0)
+      {
+         if (restore) firstCell.isOpen = false
+         return false;
+      }
+
+
       let flat = [].concat(...this);
 
-      let firstOpening = this.open(this.#validatePosition(row, col))
-      if (firstOpening.length <= 1)
+
+      let importantCells = new Set()
+
+      for (let i=0; i<flat.length; i++)
       {
-         if (restore) this.cellAt(firstOpening[0].pos).isOpen = false;
-         return false;
+         if (flat[i].isOpen == false && flat[i].isFlag == false)
+         {
+            for (let nearbyCell of this.#getNearbyCellsIndex(i))
+            {
+               if (flat[nearbyCell].isOpen == true)
+               {
+                  importantCells.add(nearbyCell);
+               }
+            }
+         }
       }
 
 
@@ -266,23 +298,19 @@ class Minefield extends Array
          let phantomGroups = [];
          updates = false;
 
-         let importantCells = new Set();
 
-         for (let i=0; i<flat.length; i++)
+         importantCells.forEach(cell =>
          {
-            if (flat[i].isOpen == false && flat[i].isFlag == false)
+            for (let nearbyCell of this.#getNearbyCellsIndex(cell))
             {
-               for (let nearbyCell of this.#getNearbyCellsIndex(i))
+               if (flat[nearbyCell].isOpen == false && flat[nearbyCell].isFlag == false)
                {
-                  if (flat[nearbyCell].isOpen == true)
-                  {
-                     importantCells.add(nearbyCell);
-                  }
+                  return;
                }
             }
-         }
 
-         importantCells = [...importantCells];
+            importantCells.delete(cell)
+         })
 
 
          for (let i of importantCells) //1st try: open cells using flags
@@ -294,6 +322,7 @@ class Minefield extends Array
                   if (flat[emptyCell].isOpen == false)
                   {
                      flat[emptyCell].isOpen = true;
+                     importantCells.add(emptyCell)
                      updates = true;
                   }
                }
@@ -317,7 +346,11 @@ class Minefield extends Array
                {
                   if (flat[i].mines == flaggedCells) //all nearby cells are fine (except for the flagged cells) > open them
                   {
-                     for (let x of unflaggedCells) flat[x].isOpen = true;
+                     for (let x of unflaggedCells)
+                     {
+                        flat[x].isOpen = true;
+                        importantCells.add(x)
+                     }
                      updates = true
                   }
 
@@ -346,7 +379,7 @@ class Minefield extends Array
          {
             let shiftUpdates = true;
 
-            while (shiftUpdates) //shifting & adding phantom bombs
+            while (shiftUpdates) //adding & shifting phantom bombs
             {
                shiftUpdates = false;
 
@@ -366,7 +399,7 @@ class Minefield extends Array
 
                   for (let phantomGroup of phantomGroups)
                   {
-                     if (phantomGroup.every(x => closedCells.includes(x)) && closedCells.length != phantomGroup.length)
+                     if (arrIncludesEveryItemOfArr(closedCells, phantomGroup) && closedCells.length != phantomGroup.length)
                      {
                         let shift = closedCells.filter(x => phantomGroup.includes(x) == false).sort();
                         let shiftMines = flat[i].mines - phantomGroup.mines - flaggedCells;
@@ -380,7 +413,7 @@ class Minefield extends Array
 
                            for (let phantomGroup of phantomGroups)
                            {
-                              if (phantomGroup.every(x => shiftPhantomGroup.includes(x)))
+                              if (arrIncludesEveryItemOfArr(shiftPhantomGroup, phantomGroup))
                               {
                                  push = false;
                                  break;
@@ -394,7 +427,7 @@ class Minefield extends Array
                            }
                         }
 
-                        if (phantomGroup.some(x => phantomGroupSum.includes(x)) == false)
+                        if (arrIncludesSomeItemOfArr(phantomGroupSum, phantomGroup) == false)
                         {
                            phantomGroupSum.mines += phantomGroup.mines;
                            phantomGroupSum.push(...phantomGroup);
@@ -410,14 +443,13 @@ class Minefield extends Array
                }
             }
 
-
             for (let i of importantCells) //open cells using phantom bombs
             {
                let nearbyCells = this.#getNearbyCellsIndex(i);
 
                for (let phantomGroup of phantomGroups)
                {
-                  if (nearbyCells.some(x => phantomGroup.includes(x)))
+                  if (arrIncludesSomeItemOfArr(phantomGroup, nearbyCells))
                   {
                      let phantomGroupUncontainedCells = phantomGroup.filter(x => nearbyCells.includes(x) == false).length;
 
@@ -446,6 +478,7 @@ class Minefield extends Array
                               if (flat[x].isFlag == false)
                               {
                                  flat[x].isOpen = true;
+                                 importantCells.add(x)
                                  updates = true;
                               }
                            }
@@ -465,6 +498,7 @@ class Minefield extends Array
                      if (flat[i].isOpen == false && flat[i].isFlag == false)
                      {
                         flat[i].isOpen = true;
+                        importantCells.add(i)
                      }
                   }
                }
@@ -476,7 +510,7 @@ class Minefield extends Array
 
                   for (let phantomGroup of phantomGroups)
                   {
-                     if (phantomGroup.some(x => JSON.stringify(remainingPhantomGroups).includes(x)) == false)
+                     if (arrIncludesSomeItemOfArr(remainingPhantomGroups, phantomGroup) == false)
                      {
                         remainingPhantomGroups.mines += phantomGroup.mines;
                         remainingPhantomGroups.push(...phantomGroup);
@@ -490,6 +524,7 @@ class Minefield extends Array
                         if (flat[i].isOpen == false && flat[i].isFlag == false && remainingPhantomGroups.includes(i) == false)
                         {
                            flat[i].isOpen = true;
+                           importantCells.add(i)
                            updates = true;
                         }
                      }
@@ -500,15 +535,14 @@ class Minefield extends Array
       }
 
 
-      let isSolvable = false;
-      if (this.isCleared()) isSolvable = true;
+      let isSolvable = this.isCleared();
 
       if (restore)
       {
-         for (let i=0; i < flat.length; i++)
+         for (let cell of flat)
          {
-            flat[i].isOpen = false;
-            flat[i].isFlag = false;
+            cell.isOpen = false;
+            cell.isFlag = false;
          }
       }
 
@@ -637,7 +671,7 @@ class Minefield extends Array
 
             for (let phantomGroup of phantomGroups)
             {
-               if (phantomGroup.every(x => closedCells.includes(x)) && closedCells.length != phantomGroup.length)
+               if (arrIncludesEveryItemOfArr(closedCells, phantomGroup) && closedCells.length != phantomGroup.length)
                {
                   let shift = closedCells.filter(x => phantomGroup.includes(x) == false).sort();
                   let shiftMines = flat[i].mines - phantomGroup.mines - flaggedCells;
@@ -651,7 +685,7 @@ class Minefield extends Array
 
                      for (let phantomGroup of phantomGroups)
                      {
-                        if (phantomGroup.every(x => shiftPhantomGroup.includes(x)))
+                        if (arrIncludesEveryItemOfArr(shiftPhantomGroup, phantomGroup))
                         {
                            push = false;
                            break;
@@ -665,7 +699,7 @@ class Minefield extends Array
                      }
                   }
 
-                  if (phantomGroup.some(x => phantomGroupSum.includes(x)) == false)
+                  if (arrIncludesSomeItemOfArr(phantomGroupSum, phantomGroup) == false)
                   {
                      phantomGroupSum.mines += phantomGroup.mines;
                      phantomGroupSum.push(...phantomGroup);
@@ -687,7 +721,7 @@ class Minefield extends Array
 
          for (let phantomGroup of phantomGroups)
          {
-            if (nearbyCells.some(x => phantomGroup.includes(x)))
+            if (arrIncludesSomeItemOfArr(phantomGroup, nearbyCells))
             {
                let phantomGroupUncontainedCells = phantomGroup.filter(x => nearbyCells.includes(x) == false).length;
 
@@ -763,7 +797,7 @@ class Minefield extends Array
 
          for (let phantomGroup of phantomGroups)
          {
-            if (phantomGroup.some(x => JSON.stringify(remainingPhantomGroups).includes(x)) == false)
+            if (arrIncludesSomeItemOfArr(remainingPhantomGroups, phantomGroup) == false)
             {
                remainingPhantomGroups.mines += phantomGroup.mines;
                remainingPhantomGroups.push(...phantomGroup);
@@ -1032,20 +1066,29 @@ class Minefield extends Array
     *  - X: An open mine
     *
     * @param {Object} opts Optional settings.
+    * @param {Boolean} opts.unicode Whether to replace various characters with unicode symbols for better viewing.
     * @param {Boolean} opts.positions Whether to include the grid row and column positions.
     * @param {Boolean} opts.color Whether to include command line colors in the visualization.
+    * @param {Array<Array<Number>>} opts.highlight An array of positions "[row, col]" of cells to highlight.
     * @param {Boolean} opts.uncover Whether to show every cell as if they were open.
     * @param {Boolean} opts.log Whether to log the visualization.
     * @returns {String} The visualization string.
     */
-   visualize({positions=false, color=false, uncover=false, log=true} = {})
+   visualize({unicode=false, positions=false, color=false, highlight=[], uncover=false, log=true} = {})
    {
-      function colorByNumber(n)
-      {
-         let colors = Object.values(this).slice(1)
-         let choice = colors[n % colors.length]
-         return choice ?? ""
-      }
+      const EMPTY = unicode ? " " : "0"
+      const CLOSED = unicode ? "■" : "?"
+      const FLAG = unicode ? "⚑" : "F"
+      const MINE = unicode ? "✸" : "X"
+
+      const MAXROWCHARS = positions ? Math.ceil(Math.log10(this.rows)) : 1
+      const MAXCOLCHARS = positions ? Math.ceil(Math.log10(this.cols)) : 1
+
+      const CORNER = " "
+      const VERTICAL = "│"
+      const HORIZONTAL = "─"
+      const INTERSECTION = "┼"
+
       const COLORS =
       {
          END: "\x1b[0m",
@@ -1064,16 +1107,19 @@ class Minefield extends Array
             bluefg:    "\x1b[34m",
             magentafg: "\x1b[35m",
             cyanfg:    "\x1b[36m",
-         }
+         },
+
+         HIGHLIGHT: "\x1b[7m"
       }
 
-      const MAXROWCHARS = Math.ceil(Math.log10(this.rows))
-      const MAXCOLCHARS = Math.ceil(Math.log10(this.cols))
 
-      const CORNER = " "
-      const VERTICAL = "│"
-      const HORIZONTAL = "─"
-      const INTERSECTION = "┼"
+      function colorByNumber(n)
+      {
+         let colors = Object.values(this).slice(1)
+         let choice = colors[n % colors.length]
+         return choice ?? ""
+      }
+
 
       let text = "";
 
@@ -1100,7 +1146,7 @@ class Minefield extends Array
       for (let i=0; i<this.rows; i++)
       {
          if (color) text += COLORS.ROW.num(i)
-         if (positions) text += i.toString().padStart(MAXROWCHARS) + " │" + " ".padStart(MAXCOLCHARS)
+         if (positions) text += i.toString().padStart(MAXROWCHARS) + " " + VERTICAL + " ".padStart(MAXCOLCHARS)
 
          for (let j=0; j<this.cols; j++)
          {
@@ -1108,14 +1154,24 @@ class Minefield extends Array
 
             if (cell.isOpen == false && uncover == false)
             {
-               if (cell.isFlag) char += "F";
-               else char += "?";
+               if (cell.isFlag) char += FLAG;
+               else char += CLOSED;
             }
-            else if (cell.isMine == true) char += "X";
+            else if (cell.isMine == true) char += MINE;
+            else if (cell.mines == 0) char += EMPTY;
             else char += cell.mines;
 
             if (color) text += COLORS.ROW.num(i) + COLORS.COL.num(j)
-            text += char;
+
+            if (matrixIncludesArr(highlight, [i, j]))
+            {
+               text += COLORS.HIGHLIGHT + char + COLORS.END
+               if (color) text += COLORS.ROW.num(i) + COLORS.COL.num(j)
+            }
+            else
+            {
+               text += char
+            }
 
             if (j != this.cols-1) text += " ".padStart(MAXCOLCHARS);
             else text += " "
@@ -1196,6 +1252,15 @@ function matrixIncludesArr(matrix, target)
 {
    return matrix.some(arr => arraysEqual(arr, target))
 }
+function arrIncludesEveryItemOfArr(arr1, arr2)
+{
+   return arr2.every(i => arr1.includes(i))
+}
+function arrIncludesSomeItemOfArr(arr1, arr2)
+{
+   return arr2.some(x => arr1.includes(x))
+}
+
 function arraysEqual(arr1, arr2)
 {
    if (arr1.length !== arr2.length) return false;

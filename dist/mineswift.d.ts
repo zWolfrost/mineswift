@@ -14,7 +14,7 @@ export = Minefield;
  */
 declare class Minefield extends Array<any> {
     /**
-     * Creates a new minefield with the given rows, columns and mines number (and randomizes them).
+     * Creates a new minefield with the given rows, columns and mines number (and randomizes the mines using the fisher-yates shuffle algorithm).
      *
      * Remember that the number of rows is the height of the minefield, while the number of columns is the width.
      * @param {Number} rows The number of rows of the minefield (1-based).
@@ -28,6 +28,12 @@ declare class Minefield extends Array<any> {
         mines: number;
         rng: Function;
     });
+    /**
+     * Replaces this Minefield object with a new Minefield object with the same rows, columns and mines number.
+     * @param rng A function that returns a random decimal number between 0 and 1 (default: {@link Math.random}).
+     * @returns The minefield has been randomized
+     */
+    randomize(rng?: () => number): void;
     /**
      * Calculates and assigns the nearby number of mines of each cell.
      * @returns The nearby number of mines for each cell has been calculated.
@@ -68,6 +74,8 @@ declare class Minefield extends Array<any> {
      * Checks if a minefield is solvable from a given cell (by not guessing).
      *
      * WARNING! This method gets resource-intensive the more the minefield is big.
+     *
+     * Note that it might return false on just really hard to solve minefields (It is very unlikely to find minefields that hard to solve, though.)
      * @param {Array<Number>} position The position of the cell to start from "[row, col]".
      * @param {Number} position.row The row of the cell to start from.
      * @param {Number} position.col The column of the cell to start from.
@@ -129,15 +137,19 @@ declare class Minefield extends Array<any> {
      *  - X: An open mine
      *
      * @param {Object} opts Optional settings.
+     * @param {Boolean} opts.unicode Whether to replace various characters with unicode symbols for better viewing.
      * @param {Boolean} opts.positions Whether to include the grid row and column positions.
      * @param {Boolean} opts.color Whether to include command line colors in the visualization.
+     * @param {Array<Array<Number>>} opts.highlight An array of positions "[row, col]" of cells to highlight.
      * @param {Boolean} opts.uncover Whether to show every cell as if they were open.
      * @param {Boolean} opts.log Whether to log the visualization.
      * @returns {String} The visualization string.
      */
-    visualize({ positions, color, uncover, log }?: {
+    visualize({ unicode, positions, color, highlight, uncover, log }?: {
+        unicode: boolean;
         positions: boolean;
         color: boolean;
+        highlight: Array<Array<number>>;
         uncover: boolean;
         log: boolean;
     }): string;
