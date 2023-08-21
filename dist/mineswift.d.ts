@@ -20,7 +20,7 @@ declare class Minefield extends Array<any> {
      * @param {Number} rows The number of rows of the minefield (1-based).
      * @param {Number} cols The number of columns of the minefield (1-based).
      * @param {Object} opts Optional settings.
-     * @param {Number} opts.mines The number of total mines (default: width*height/5).
+     * @param {Number} opts.mines The number of total mines (default: rows*cols/5).
      * @param {Function} opts.rng A function that returns a random decimal number between 0 and 1 (default: {@link Math.random}).
      * @returns {Minefield} A new Minefield object.
      */
@@ -34,6 +34,11 @@ declare class Minefield extends Array<any> {
      * @returns The minefield has been randomized
      */
     randomize(rng?: () => number): void;
+    /**
+     * Closes all cells and removes all flags from the minefield.
+     * @returns The minefield has been reset.
+     */
+    reset(): void;
     /**
      * Calculates and assigns the nearby number of mines of each cell.
      * @returns The nearby number of mines for each cell has been calculated.
@@ -49,7 +54,7 @@ declare class Minefield extends Array<any> {
      */
     simplify(): Array<Array<number>>;
     /**
-     * Returns a version of the minefield where all the rows are concatenated in a single array. Useful for looping each cell quickly.
+     * Returns a version of the minefield where all the rows are concatenated in a single array. Useful for iterating each cell quickly.
      *
      * WARNING! This array will keep the reference of every cell, so modifying this array will also modify the ones of the actual minefield.
      * @returns {Array} The concatenated minefield rows.
@@ -104,7 +109,7 @@ declare class Minefield extends Array<any> {
     getNearbyCells([row, col]: Array<number>, includeSelf?: boolean): any[];
     /**
      * Shorthand for getting a cell by doing "minefield.cellAt(position)" instead of "minefield[ position[0] ][ position[1] ]".
-     * @param {Array<Number>} position The position of the desired cell to start from. Row and column can be either in an array or passed as-is.
+     * @param {Array<Number>} position The position of the desired cell to start from. Row and column can be either in an array or passed as-is. If given only one value, it is assumed that that value is the index of the concatenated minefield.
      * @returns {Object} The cell object at the given position.
      */
     cellAt(...position: Array<number>): any;
@@ -132,9 +137,9 @@ declare class Minefield extends Array<any> {
      * Creates and logs by default a visually clear string of the minefield, useful for debugging. Legend:
      *
      *  - ?: Unknown cells (neither open or flagged)
-     *  - F: Flagged cells
-     *  - [0-8]: An open cell, with its nearby mines number
+     *  - F: Flagged cells (If the cell is, for some reason, also open, it will get treated as unflagged.)
      *  - X: An open mine
+     *  - [0-8]: An open cell, with its nearby mines number
      *
      * @param {Object} opts Optional settings.
      * @param {Boolean} opts.unicode Whether to replace various characters with unicode symbols for better viewing.
@@ -154,9 +159,25 @@ declare class Minefield extends Array<any> {
         log: boolean;
     }): string;
     /**
+     * Either removes rows from the minefield or adds empty ones.
+     *
+     * Then, resets the nearby mines number for every cell.
+     * @param {Number} rows The number of target rows.
+     * @returns The number of rows has been changed.
+     */
+    set rows(arg: number);
+    /**
      * @returns {Number} The number of rows of the current minefield.
      */
     get rows(): number;
+    /**
+     * Either removes columns from the minefield or adds empty ones.
+     *
+     * Then, resets the nearby mines number for every cell.
+     * @param {Number} cols The number of target columns.
+     * @returns The number of columns has been changed.
+     */
+    set cols(arg: number);
     /**
      * @returns {Number} The number of columns of the current minefield.
      */
@@ -166,10 +187,24 @@ declare class Minefield extends Array<any> {
      */
     get cells(): number;
     /**
+     * Either removes random mines from the minefield or adds other ones at random positions.
+     *
+     * Then, resets the nearby mines number for every cell.
+     * @param {Number} mines The number of target mines.
+     * @returns The number of mines has been changed.
+     */
+    set mines(arg: number);
+    /**
+     * Loops over the minefield to find any instance of a mine.
+     *
+     * It is recommended to store this value as the used method iterates through the whole minefield.
      * @returns {Number} The number of mines in the current minefield.
      */
     get mines(): number;
     /**
+     * Loops over the minefield to find any instance of a flagged cell.
+     *
+     * It is recommended to store this value as the used method iterates through the whole minefield.
      * @returns {Number} The number of flagged cells in the current minefield.
      */
     get flags(): number;
