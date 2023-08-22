@@ -22,56 +22,89 @@ class Minefield extends Array
     * @param {Number} rows The number of rows of the minefield (1-based).
     * @param {Number} cols The number of columns of the minefield (1-based).
     * @param {Object} opts Optional settings.
-    * @param {Number} opts.mines The number of total mines (default: rows*cols/5).
+    * @param {Number} opts.mines The number of total mines (default: rows*cols/5). If given an array of positions instead ("[[row, col], [row2, col2], ...]"), mines will be set in those, without randomizing.
     * @param {Function} opts.rng A function that returns a random decimal number between 0 and 1 (default: {@link Math.random}).
     * @returns {Minefield} A new Minefield object.
     */
    constructor(rows, cols, { mines = Math.floor(rows*cols/5), rng = Math.random } = {})
    {
+      super();
+
       rows = parseIntRange(rows, 1)
       cols = parseIntRange(cols, 1)
 
-      super();
+      if (mines == 0) mines = []
 
-      //Assign properties to cells and add mines
-      for (let i=0; i<rows; i++)
+      if (Array.isArray(mines))
       {
-         this[i] = []
-
-         for (let j=0; j<cols; j++)
+         //Assign properties to cells
+         for (let i=0; i<rows; i++)
          {
-            this[i][j] = {
-               mines: 0,
-               isMine: mines-- > 0,
-               isOpen: false,
-               isFlag: false
-            };
+            this[i] = []
+
+            for (let j=0; j<cols; j++)
+            {
+               this[i][j] = {
+                  mines: 0,
+                  isMine: false,
+                  isOpen: false,
+                  isFlag: false,
+                  row: i,
+                  col: j,
+                  pos: [i, j]
+               };
+            }
+         }
+
+         //Add mines and assign nearby mines number for nearby cells
+         for (let pos of mines)
+         {
+            this.cellAt(pos).isMine = true
+            this.getNearbyCells(pos, true).forEach(cell => cell.mines++)
          }
       }
-
-      //Fisher-Yates shuffle algorithm
-      for (let i=(this.rows*this.cols)-1; i>0; i--)
+      else
       {
-         let j = Math.floor(rng() * (i+1));
-
-         let [row, col] = this.#indexToPosition(i);
-         let [row2, col2] = this.#indexToPosition(j);
-
-         [ this[row][col], this[row2][col2] ] = [ this[row2][col2], this[row][col] ];
-      }
-
-      //Assigns position and nearby mines number for each cell.
-      for (let i=0; i<this.rows; i++)
-      {
-         for (let j=0; j<this.cols; j++)
+         //Assign properties to cells and add mines
+         for (let i=0; i<rows; i++)
          {
-            this[i][j].row = i
-            this[i][j].col = j
-            this[i][j].pos = [i, j]
+            this[i] = []
 
-            if (this[i][j].isMine)
+            for (let j=0; j<cols; j++)
             {
-               this.getNearbyCells([i, j], true).forEach(cell => cell.mines++)
+               this[i][j] = {
+                  mines: 0,
+                  isMine: mines-- > 0,
+                  isOpen: false,
+                  isFlag: false
+               };
+            }
+         }
+
+         //Fisher-Yates shuffle algorithm
+         for (let i=(this.rows*this.cols)-1; i>0; i--)
+         {
+            let j = Math.floor(rng() * (i+1));
+
+            let [row, col] = this.#indexToPosition(i);
+            let [row2, col2] = this.#indexToPosition(j);
+
+            [ this[row][col], this[row2][col2] ] = [ this[row2][col2], this[row][col] ];
+         }
+
+         //Assign position and nearby mines number for nearby cells
+         for (let i=0; i<this.rows; i++)
+         {
+            for (let j=0; j<this.cols; j++)
+            {
+               this[i][j].row = i
+               this[i][j].col = j
+               this[i][j].pos = [i, j]
+
+               if (this[i][j].isMine)
+               {
+                  this.getNearbyCells([i, j], true).forEach(cell => cell.mines++)
+               }
             }
          }
       }
@@ -184,7 +217,7 @@ class Minefield extends Array
     */
    open([row, col], {firstMove=this.isNew(), nearbyOpening=false, nearbyFlagging=false} = {})
    {
-      let flat = [].concat(...this);
+      let flat = this.concatenate();
       let index = this.#positionToIndex(this.#validatePosition(row, col))
       let updatedCells = [];
 
@@ -274,12 +307,12 @@ class Minefield extends Array
    }
 
    /**
-    * Checks if a minefield is solvable from a given cell (by not guessing).
+    * Checks if a minefield is solvable starting from a given cell by not guessing, using an algorithm.
     *
-    * WARNING! This method gets resource-intensive the more the minefield is big.
+    * WARNING! This method will take more time the more the minefield is big. However it is highly optimized to mitigate this as much as possible.
     *
-    * Note that it might return false on just really hard to solve minefields (It is very unlikely to find minefields that hard to solve, though.)
-    * @param {Array<Number>} position The position of the cell to start from "[row, col]".
+    * Note that the algorithm isn't perfect and it might return false on really hard but still solvable minefields. Although, it's worth noting that encountering those is really unlikely.
+    * @param {Array<Number>} position The position of the cell to start from "[row, col]". If given an empty array, will start from the current state.
     * @param {Number} position.row The row of the cell to start from.
     * @param {Number} position.col The column of the cell to start from.
     * @param {Boolean} restore Whether to restore the Minefield to all cells closed at the end.
@@ -301,22 +334,16 @@ class Minefield extends Array
       }
 
 
-      let flat = [].concat(...this);
+      let flat = this.concatenate();
 
 
-      let importantCells = new Set()
+      let importantCells = []
 
       for (let i=0; i<flat.length; i++)
       {
-         if (flat[i].isOpen == false && flat[i].isFlag == false)
+         if (flat[i].isOpen)
          {
-            for (let nearbyCell of this.#getNearbyCellsIndex(i))
-            {
-               if (flat[nearbyCell].isOpen == true)
-               {
-                  importantCells.add(nearbyCell);
-               }
-            }
+            importantCells.push(i)
          }
       }
 
@@ -330,21 +357,21 @@ class Minefield extends Array
          let allLinkedGroups = [];
 
 
-         importantCells.forEach(cell =>
+         importantCells = importantCells.filter(cell =>
          {
             for (let nearbyCell of this.#getNearbyCellsIndex(cell))
             {
                if (flat[nearbyCell].isOpen == false && flat[nearbyCell].isFlag == false)
                {
-                  return;
+                  return true;
                }
             }
 
-            importantCells.delete(cell)
+            return false
          })
 
 
-         for (let i of importantCells) //1st try: open cells using flags
+         for (let i of importantCells) //1st try: open cells using nearby mines and flags
          {
             if (flat[i].mines == 0) //all nearby cells are fine
             {
@@ -353,7 +380,7 @@ class Minefield extends Array
                   if (flat[emptyCell].isOpen == false)
                   {
                      flat[emptyCell].isOpen = true;
-                     importantCells.add(emptyCell)
+                     importantCells.push(emptyCell)
                      updates = true;
                   }
                }
@@ -380,7 +407,7 @@ class Minefield extends Array
                      for (let cell of nearbyUnflaggedCells)
                      {
                         flat[cell].isOpen = true;
-                        importantCells.add(cell)
+                        importantCells.push(cell)
                      }
                      updates = true
                   }
@@ -490,7 +517,7 @@ class Minefield extends Array
                               if (flat[cell].isFlag == false)
                               {
                                  flat[cell].isOpen = true;
-                                 importantCells.add(cell)
+                                 importantCells.push(cell)
                                  updates = true;
                               }
                            }
@@ -499,62 +526,61 @@ class Minefield extends Array
                   }
                }
             }
+         }
 
+         if (updates == false) //3th try: open cells using remaining flags count
+         {
+            let flagsCount = 0, minesCount = 0;
 
-            if (updates == false) //3th try: open cells using remaining flags count
+            for (let cell of flat)
             {
-               let flagsCount = 0, minesCount = 0;
+               if (cell.isFlag) flagsCount++
+               if (cell.isMine) minesCount++
+            }
 
-               for (let cell of flat)
+            if (flagsCount == minesCount)
+            {
+               for (let i=0; i<flat.length; i++)
                {
-                  if (cell.isFlag) flagsCount++
-                  if (cell.isMine) minesCount++
-               }
-
-               if (flagsCount == minesCount)
-               {
-                  for (let i=0; i<flat.length; i++)
+                  if (flat[i].isOpen == false && flat[i].isFlag == false)
                   {
-                     if (flat[i].isOpen == false && flat[i].isFlag == false)
-                     {
-                        flat[i].isOpen = true;
-                        importantCells.add(i)
-                     }
+                     flat[i].isOpen = true;
+                     importantCells.push(i)
                   }
                }
-               else
+            }
+            else
+            {
+               for (let linkedGroup of allLinkedGroups) linkedGroup.sort()
+               allLinkedGroups.sort() //prioritizing smaller linked groups
+
+
+               let linkedGroupsSum = []
+               linkedGroupsSum.mines = 0
+
+               for (let linkedGroup of allLinkedGroups)
                {
-                  for (let linkedGroup of allLinkedGroups) linkedGroup.sort()
-                  allLinkedGroups.sort() //prioritizing smaller linked groups
-
-
-                  let linkedGroupsSum = []
-                  linkedGroupsSum.mines = 0
-
-                  for (let linkedGroup of allLinkedGroups)
+                  if (arrIncludesSomeItemOfArr(linkedGroupsSum, linkedGroup) == false) //adding
                   {
-                     if (arrIncludesSomeItemOfArr(linkedGroupsSum, linkedGroup) == false) //adding
-                     {
-                        linkedGroupsSum.mines += linkedGroup.mines;
-                        linkedGroupsSum.push(...linkedGroup);
-                     }
+                     linkedGroupsSum.mines += linkedGroup.mines;
+                     linkedGroupsSum.push(...linkedGroup);
                   }
+               }
 
-                  allLinkedGroups.push(linkedGroupsSum);
+               allLinkedGroups.push(linkedGroupsSum);
 
 
-                  for (let linkedGroup of allLinkedGroups)
+               for (let linkedGroup of allLinkedGroups)
+               {
+                  if (linkedGroup.mines == minesCount - flagsCount)
                   {
-                     if (linkedGroup.mines == minesCount - flagsCount)
+                     for (let i=0; i<flat.length; i++)
                      {
-                        for (let i=0; i<flat.length; i++)
+                        if (flat[i].isOpen == false && flat[i].isFlag == false && linkedGroup.includes(i) == false)
                         {
-                           if (flat[i].isOpen == false && flat[i].isFlag == false && linkedGroup.includes(i) == false)
-                           {
-                              flat[i].isOpen = true;
-                              importantCells.add(i)
-                              updates = true;
-                           }
+                           flat[i].isOpen = true;
+                           importantCells.push(i)
+                           updates = true;
                         }
                      }
                   }
@@ -564,16 +590,10 @@ class Minefield extends Array
       }
 
 
-      let isSolvable = this.isCleared();
+      if (restore) this.reset()
 
-      if (restore)
-      {
-         for (let cell of flat)
-         {
-            cell.isOpen = false;
-            cell.isFlag = false;
-         }
-      }
+
+      let isSolvable = (importantCells.length == 0);
 
       return isSolvable;
    }
@@ -586,27 +606,28 @@ class Minefield extends Array
     */
    getHints(accurateHint=false)
    {
-      let flat = [].concat(...this);
+      let flat = this.concatenate();
 
       let hintPositions = [];
       let accurateHintPositions = [];
 
       let allLinkedGroups = [];
-      let importantCells = new Set();
+      let importantCells = [];
 
-      for (let i=0; i<flat.length; i++)
+      flat.forEach((cell, i) =>
       {
-         if (flat[i].isOpen == false && flat[i].isFlag == false)
+         if (cell.isOpen)
          {
             for (let nearbyCell of this.#getNearbyCellsIndex(i))
             {
-               if (flat[nearbyCell].isOpen == true)
+               if (flat[nearbyCell].isOpen == false && flat[nearbyCell].isFlag == false)
                {
-                  importantCells.add(nearbyCell);
+                  importantCells.push(i);
+                  return;
                }
             }
          }
-      }
+      })
 
 
       for (let i of importantCells) //1st try: using flags
@@ -897,7 +918,7 @@ class Minefield extends Array
    }
    #getEmptyZoneIndex(index, includeFlags=false)
    {
-      let flat = [].concat(...this)
+      let flat = this.concatenate()
       let emptyZone = new Set([index]);
 
       for (let emptyCell of emptyZone)
@@ -948,6 +969,7 @@ class Minefield extends Array
 
       return nearbyCells;
    }
+
    #validatePosition(...position)
    {
       let row, col;
@@ -987,6 +1009,7 @@ class Minefield extends Array
       }
       return this[position[0]][position[1]]
    }
+
    #indexToPosition(index)
    {
       return [Math.floor(index / this.cols), index % this.cols]
@@ -1099,7 +1122,7 @@ class Minefield extends Array
     * @param {Boolean} opts.unicode Whether to replace various characters with unicode symbols for better viewing.
     * @param {Boolean} opts.positions Whether to include the grid row and column positions.
     * @param {Boolean} opts.color Whether to include command line colors in the visualization.
-    * @param {Array<Array<Number>>} opts.highlight An array of positions "[row, col]" of cells to highlight.
+    * @param {Array<Array<Number>>} opts.highlight An array of positions "[[row, col], [row2, col2], ...]" of cells to highlight.
     * @param {Boolean} opts.uncover Whether to show every cell as if they were open.
     * @param {Boolean} opts.log Whether to log the visualization.
     * @returns {String} The visualization string.
@@ -1332,7 +1355,7 @@ class Minefield extends Array
    /**
     * Loops over the minefield to find any instance of a mine.
     *
-    * It is recommended to store this value as the used method iterates through the whole minefield.
+    * Because of this, it's recommended to cache this value.
     * @returns {Number} The number of mines in the current minefield.
     */
    get mines()
@@ -1387,7 +1410,7 @@ class Minefield extends Array
    /**
     * Loops over the minefield to find any instance of a flagged cell.
     *
-    * It is recommended to store this value as the used method iterates through the whole minefield.
+    * Because of this, it's recommended to cache this value.
     * @returns {Number} The number of flagged cells in the current minefield.
     */
    get flags()

@@ -78,7 +78,7 @@ Creates a minefield with 4 rows, 6 columns and 3 mines, which is a 2D-Array with
 - **v1.2.0**:
 <br>- Added "randomize" method.
 <br>- Added "unicode" and "highlight" options in the "visualize" method.
-<br>- The "isSolvableFrom" method will return false if the chosen cell is a mine, instead of moving it in the upper left corner (like "open" does when "firstMove" is true).
+<br>- The "isSolvableFrom" method will return false if the chosen cell is a mine, instead of moving it in the upper left corner (like the "open" method does when "firstMove" is true).
 <br>- Further optimized the "isSolvableFrom" method.
 
 - **v1.3.0**:
@@ -86,6 +86,11 @@ Creates a minefield with 4 rows, 6 columns and 3 mines, which is a 2D-Array with
 <br>- Added "rows", "cols" and "mines" setters.
 <br>- Further improved and optimized the "isSolvableFrom" and "getHints" methods.
 <br>- Fixed bug in the "visualize" method where the column positions would slightly shift the right.
+
+- **v1.4.0**
+<br>- If you pass an array of positions to the "mines" option of the Minefield constructor, the mines will now be set in those positions.
+<br>- Further optimized the "isSolvableFrom" and "getHints" methods.
+<br>- Fixed a bug where creating a Minefield with 0 mines would still randomize the cells.
 
 &nbsp;
 ## Found a bug and/or need help?

@@ -20,7 +20,7 @@ declare class Minefield extends Array<any> {
      * @param {Number} rows The number of rows of the minefield (1-based).
      * @param {Number} cols The number of columns of the minefield (1-based).
      * @param {Object} opts Optional settings.
-     * @param {Number} opts.mines The number of total mines (default: rows*cols/5).
+     * @param {Number} opts.mines The number of total mines (default: rows*cols/5). If given an array of positions instead ("[[row, col], [row2, col2], ...]"), mines will be set in those, without randomizing.
      * @param {Function} opts.rng A function that returns a random decimal number between 0 and 1 (default: {@link Math.random}).
      * @returns {Minefield} A new Minefield object.
      */
@@ -76,12 +76,12 @@ declare class Minefield extends Array<any> {
         nearbyFlagging: boolean;
     }): Array<any[]>;
     /**
-     * Checks if a minefield is solvable from a given cell (by not guessing).
+     * Checks if a minefield is solvable starting from a given cell by not guessing, using an algorithm.
      *
-     * WARNING! This method gets resource-intensive the more the minefield is big.
+     * WARNING! This method will take more time the more the minefield is big. However it is highly optimized to mitigate this as much as possible.
      *
-     * Note that it might return false on just really hard to solve minefields (It is very unlikely to find minefields that hard to solve, though.)
-     * @param {Array<Number>} position The position of the cell to start from "[row, col]".
+     * Note that the algorithm isn't perfect and it might return false on really hard but still solvable minefields. Although, it's worth noting that encountering those is really unlikely.
+     * @param {Array<Number>} position The position of the cell to start from "[row, col]". If given an empty array, will start from the current state.
      * @param {Number} position.row The row of the cell to start from.
      * @param {Number} position.col The column of the cell to start from.
      * @param {Boolean} restore Whether to restore the Minefield to all cells closed at the end.
@@ -145,7 +145,7 @@ declare class Minefield extends Array<any> {
      * @param {Boolean} opts.unicode Whether to replace various characters with unicode symbols for better viewing.
      * @param {Boolean} opts.positions Whether to include the grid row and column positions.
      * @param {Boolean} opts.color Whether to include command line colors in the visualization.
-     * @param {Array<Array<Number>>} opts.highlight An array of positions "[row, col]" of cells to highlight.
+     * @param {Array<Array<Number>>} opts.highlight An array of positions "[[row, col], [row2, col2], ...]" of cells to highlight.
      * @param {Boolean} opts.uncover Whether to show every cell as if they were open.
      * @param {Boolean} opts.log Whether to log the visualization.
      * @returns {String} The visualization string.
@@ -197,14 +197,14 @@ declare class Minefield extends Array<any> {
     /**
      * Loops over the minefield to find any instance of a mine.
      *
-     * It is recommended to store this value as the used method iterates through the whole minefield.
+     * Because of this, it's recommended to cache this value.
      * @returns {Number} The number of mines in the current minefield.
      */
     get mines(): number;
     /**
      * Loops over the minefield to find any instance of a flagged cell.
      *
-     * It is recommended to store this value as the used method iterates through the whole minefield.
+     * Because of this, it's recommended to cache this value.
      * @returns {Number} The number of flagged cells in the current minefield.
      */
     get flags(): number;
