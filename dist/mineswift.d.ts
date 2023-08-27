@@ -30,6 +30,8 @@ declare class Minefield extends Array<any> {
     });
     /**
      * Replaces this Minefield object with a new Minefield object with the same rows, columns and mines number.
+     *
+     * That means that randomizing will also reset the minefield.
      * @param rng A function that returns a random decimal number between 0 and 1 (default: {@link Math.random}).
      * @returns The minefield has been randomized
      */

@@ -8,15 +8,54 @@ Some of the most notable capabilities:
 
 &nbsp;
 ## How to use
-```
+```js
 const Minefield = require("mineswift")
 
-let minefield = new Minefield(4, 6, {mines: 3});
+let minefield = new Minefield(4, 6, {mines: 5});
+//default mines number is "floor(rows*cols/5)"
 ```
-
-Creates a minefield with 4 rows, 6 columns and 3 mines, which is a 2D-Array with row-major layout, that contains:
+Creates a minefield with 4 rows, 6 columns and 5 mines, which is a 2D-Array with row-major layout, that contains:
 - [0...3]               - The minefield rows.
 - [0...3][0...5]        - The minefield cells of the row, on their column position. [see below their properties](#minefield-cell-properties).
+
+&nbsp;
+```js
+while (minefield.isSolvableFrom([2, 3]) == false) {
+    minefield.randomize()
+}
+```
+Randomizes the minefield until it finds one that is solvable without guessing, starting from the cell at row "2" and column "3"
+
+&nbsp;
+```js
+minefield.open([2, 3])
+```
+Opens the cell at row "2" and column "3" and may open nearby cells following the minesweeper game rules (like what would happen if the cell doesn't have any mines nearby).
+
+&nbsp;
+```js
+if (minefield.isLost()) {
+    console.log("you lost!!")
+}
+```
+Returns a Boolean value that indicates whether a mine has been opened in the current minefield (as in the game has been lost).
+
+&nbsp;
+```js
+minefield.visualize()
+// ? ? ? ? ? ?
+// ? ? 3 2 1 ?
+// ? ? 2 0 1 ?
+// ? ? 1 0 1 ?
+
+minefield.visualize({uncover: true})
+// 1 2 X X 1 0
+// 1 X 3 2 1 0
+// 2 2 2 0 1 1
+// 1 X 1 0 1 X
+```
+Returns (and logs by default) a visually clear string of the minefield, useful for debugging.
+
 
 &nbsp;
 ## Minefield Cell Properties
@@ -91,6 +130,9 @@ Creates a minefield with 4 rows, 6 columns and 3 mines, which is a 2D-Array with
 <br>- If you pass an array of positions to the "mines" option of the Minefield constructor, the mines will now be set in those positions.
 <br>- Further optimized the "isSolvableFrom" and "getHints" methods.
 <br>- Fixed a bug where creating a Minefield with 0 mines would still randomize the cells.
+  - **v1.4.1**
+  <br>- Added examples to the "[How to use](#how-to-use)" section.
+  <br>- JSDOC clarifications.
 
 &nbsp;
 ## Found a bug and/or need help?
