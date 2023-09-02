@@ -1,32 +1,46 @@
 "use strict"
 
+type Cell = {
+   mines: number,
+   isMine: boolean,
+   isOpen: boolean,
+   isFlag: boolean,
+   row: number,
+   col: number,
+   pos: [number, number]
+}
+
+type LinkedGroup = number[] & {mines: number}
+type Hint = Cell[] & {safe: boolean}
+
+
 /**
  * A 2D-Array, with row-major layout (rows, then columns) containing the minefield cells and their properties:
  *
  * @prop {Array}   rows                    - The minefield cell rows.
  * @prop {Array}   rows[].cols             - The minefield cells of the row, on their column.
- * @prop {Number}  rows[].cols[].mines     - The number of mines present around a cell.
- * @prop {Boolean} rows[].cols[].isMine    - Whether a cell is a mine.
- * @prop {Boolean} rows[].cols[].isOpen    - Whether a cell is revealed.
- * @prop {Boolean} rows[].cols[].isFlag    - Whether a cell is flagged.
- * @prop {Number}  rows[].cols[].row       - The row position of the cell.
- * @prop {Number}  rows[].cols[].col       - The column position of the cell.
- * @prop {Array<Number>} rows[].cols[].pos - An array of the row and column of the cell.
+ * @prop {number}  rows[].cols[].mines     - The number of mines present around a cell.
+ * @prop {boolean} rows[].cols[].isMine    - Whether a cell is a mine.
+ * @prop {boolean} rows[].cols[].isOpen    - Whether a cell is revealed.
+ * @prop {boolean} rows[].cols[].isFlag    - Whether a cell is flagged.
+ * @prop {number}  rows[].cols[].row       - The row position of the cell.
+ * @prop {number}  rows[].cols[].col       - The column position of the cell.
+ * @prop {number[]} rows[].cols[].pos - An array of the row and column of the cell.
  */
-class Minefield extends Array
+class Minefield extends Array<Array<Cell>>
 {
    /**
     * Creates a new minefield with the given rows, columns and mines number (and randomizes the mines using the fisher-yates shuffle algorithm).
     *
     * Remember that the number of rows is the height of the minefield, while the number of columns is the width.
-    * @param {Number} rows The number of rows of the minefield (1-based).
-    * @param {Number} cols The number of columns of the minefield (1-based).
+    * @param {number} rows The number of rows of the minefield (1-based).
+    * @param {number} cols The number of columns of the minefield (1-based).
     * @param {Object} opts Optional settings.
-    * @param {Number} opts.mines The number of total mines (default: rows*cols/5). If given an array of positions instead ("[[row, col], [row2, col2], ...]"), mines will be set in those, without randomizing.
+    * @param {number} opts.mines The number of total mines (default: rows*cols/5). If given an array of positions instead ("[[row, col], [row2, col2], ...]"), mines will be set in those, without randomizing.
     * @param {Function} opts.rng A function that returns a random decimal number between 0 and 1 (default: {@link Math.random}).
     * @returns {Minefield} A new Minefield object.
     */
-   constructor(rows, cols, { mines = Math.floor(rows*cols/5), rng = Math.random } = {})
+   constructor(rows: number, cols: number, { mines = Math.floor(rows*cols/5), rng = Math.random }: { mines?: number | number[][], rng?: Function} = {})
    {
       super();
 
@@ -76,7 +90,10 @@ class Minefield extends Array
                   mines: 0,
                   isMine: mines-- > 0,
                   isOpen: false,
-                  isFlag: false
+                  isFlag: false,
+                  row: i,
+                  col: j,
+                  pos: [i, j],
                };
             }
          }
@@ -116,10 +133,10 @@ class Minefield extends Array
     * Replaces this Minefield object with a new Minefield object with the same rows, columns and mines number.
     *
     * That means that randomizing will also reset the minefield.
-    * @param rng A function that returns a random decimal number between 0 and 1 (default: {@link Math.random}).
+    * @param {Function} rng A function that returns a random decimal number between 0 and 1 (default: {@link Math.random}).
     * @returns The minefield has been randomized
     */
-   randomize(rng = Math.random)
+   randomize(rng: Function = Math.random)
    {
       Object.assign(this, new Minefield(this.rows, this.cols, { mines: this.mines, rng: rng }))
    }
@@ -173,11 +190,11 @@ class Minefield extends Array
     *  - -1: A mine;
     *  - [0-8]: A cell with the number of nearby mines.
     *
-    * @returns {Array< Array<Number> >} A Number-Only array containing the numbers with meanings explained above.
+    * @returns {number[][]} A Number-Only array containing the numbers with meanings explained above.
     */
-   simplify()
+   simplify(): number[][]
    {
-      let simplified = [];
+      let simplified: number[][] = [];
 
       for (let i=0; i<this.rows; i++)
       {
@@ -198,32 +215,32 @@ class Minefield extends Array
     * Returns a version of the minefield where all the rows are concatenated in a single array. Useful for iterating each cell quickly.
     *
     * WARNING! This array will keep the reference of every cell, so modifying this array will also modify the ones of the actual minefield.
-    * @returns {Array} The concatenated minefield rows.
+    * @returns {Cell[]} The concatenated minefield rows.
     */
-   concatenate()
+   concatenate(): Cell[]
    {
-      return [].concat(...this)
+      return ([] as Cell[]).concat(...this)
    }
 
 
 
    /**
     * Opens a given cell and may open nearby ones following the minesweeper game rules.
-    * @param {Array<Number>} position The position of the cell to open "[row, col]".
+    * @param {number[]} position The position of the cell to open "[row, col]".
     * @param {Object} opts Optional settings.
-    * @param {Boolean} opts.firstMove If true, and a bomb is opened, it will be moved in another cell starting from 0 (default: {@link isNew()}).
-    * @param {Boolean} opts.nearbyOpening Allows the opening of nearby cells if the given cell is already open and its nearby mines number matches the number of nearby flagged cells.
-    * @param {Boolean} opts.nearbyFlagging Allows the flagging of nearby cells if the given cell is already open and its nearby mines number matches the number of nearby closed cells.
-    * @returns {Array<Array>>} An array containing arrays with the coordinates of the updated cells.
+    * @param {boolean} opts.firstMove If true, and a bomb is opened, it will be moved in another cell starting from 0 (default: {@link isNew()}).
+    * @param {boolean} opts.nearbyOpening Allows the opening of nearby cells if the given cell is already open and its nearby mines number matches the number of nearby flagged cells.
+    * @param {boolean} opts.nearbyFlagging Allows the flagging of nearby cells if the given cell is already open and its nearby mines number matches the number of nearby closed cells.
+    * @returns {Cell[]} An array containing arrays with the coordinates of the updated cells.
     * @throws If the cell position is invalid.
     */
-   open([row, col], {firstMove=this.isNew(), nearbyOpening=false, nearbyFlagging=false} = {})
+   open([row, col]: number[], {firstMove=this.isNew(), nearbyOpening=false, nearbyFlagging=false}: {firstMove?: boolean, nearbyOpening?: boolean, nearbyFlagging?: boolean} = {}): Cell[]
    {
       let flat = this.concatenate();
       let index = this.#positionToIndex(this.#validatePosition(row, col))
-      let updatedCells = [];
+      let updatedCells: Cell[] = [];
 
-      let flatOpenEmptyZone = (index) =>
+      let flatOpenEmptyZone = (index: number) =>
       {
          for (let cell of this.#getEmptyZoneIndex(index))
          {
@@ -268,7 +285,7 @@ class Minefield extends Array
       {
          if (nearbyOpening || nearbyFlagging)
          {
-            let nearbyClosedCellsCount = 0, nearbyFlaggedCellsCount = 0, nearbyUnflaggedCells = [];
+            let nearbyClosedCellsCount = 0, nearbyFlaggedCellsCount = 0, nearbyUnflaggedCells: number[] = [];
 
             for (let nearbyCell of this.#getNearbyCellsIndex(index))
             {
@@ -314,14 +331,14 @@ class Minefield extends Array
     * WARNING! This method will take more time the more the minefield is big. However it is highly optimized to mitigate this as much as possible.
     *
     * Note that the algorithm isn't perfect and it might return false on really hard but still solvable minefields. Although, it's worth noting that encountering those is really unlikely.
-    * @param {Array<Number>} position The position of the cell to start from "[row, col]". If given an empty array, will start from the current state.
-    * @param {Number} position.row The row of the cell to start from.
-    * @param {Number} position.col The column of the cell to start from.
-    * @param {Boolean} restore Whether to restore the Minefield to all cells closed at the end.
-    * @returns {Boolean} Whether the minefield is solvable from a given cell (by not guessing).
+    * @param {number[]} position The position of the cell to start from "[row, col]". If given an empty array, will start from the current state.
+    * @param {number} position.row The row of the cell to start from.
+    * @param {number} position.col The column of the cell to start from.
+    * @param {boolean} restore Whether to restore the Minefield to all cells closed at the end.
+    * @returns {boolean} Whether the minefield is solvable from a given cell (by not guessing).
     * @throws If the cell position is invalid.
     */
-   isSolvableFrom([row, col], restore=true)
+   isSolvableFrom([row, col]: number[], restore: boolean=true): boolean
    {
       if (row !== undefined && col !== undefined)
       {
@@ -339,7 +356,7 @@ class Minefield extends Array
       let flat = this.concatenate();
 
 
-      let importantCells = []
+      let importantCells: number[] = []
 
       for (let i=0; i<flat.length; i++)
       {
@@ -356,7 +373,7 @@ class Minefield extends Array
       {
          updates = false;
 
-         let allLinkedGroups = [];
+         let allLinkedGroups: LinkedGroup[] = [];
 
 
          importantCells = importantCells.filter(cell =>
@@ -389,7 +406,7 @@ class Minefield extends Array
             }
             else
             {
-               let nearbyClosedCellsCount = 0, nearbyFlaggedCellsCount = 0, nearbyUnflaggedCells = [];
+               let nearbyClosedCellsCount = 0, nearbyFlaggedCellsCount = 0, nearbyUnflaggedCells: LinkedGroup = Object.assign([], { mines: 0 });
 
                for (let nearbyCell of this.#getNearbyCellsIndex(i))
                {
@@ -443,8 +460,7 @@ class Minefield extends Array
 
                for (let i of importantCells)
                {
-                  let linkedGroupsSum = [];
-                  linkedGroupsSum.mines = 0
+                  let linkedGroupsSum: LinkedGroup = Object.assign([], { mines: 0 });
 
                   let nearbyClosedCells = [];
                   let nearbyFlaggedCellsCount = 0;
@@ -459,8 +475,8 @@ class Minefield extends Array
                   {
                      if (arrIncludesEveryItemOfArr(nearbyClosedCells, linkedGroup) && nearbyClosedCells.length != linkedGroup.length)
                      {
-                        let shiftLinkedGroup = nearbyClosedCells.filter(cell => linkedGroup.includes(cell) == false); //shifting
-                        shiftLinkedGroup.mines = flat[i].mines - linkedGroup.mines - nearbyFlaggedCellsCount;
+                        let shiftLinkedGroup: LinkedGroup = Object.assign( nearbyClosedCells.filter(cell => linkedGroup.includes(cell) == false), //shifting
+                        { mines: flat[i].mines - linkedGroup.mines - nearbyFlaggedCellsCount });
 
                         if (shiftLinkedGroup.length > 0 && shiftLinkedGroup.mines > 0 && matrixIncludesArr(allLinkedGroups, shiftLinkedGroup) == false)
                         {
@@ -557,14 +573,13 @@ class Minefield extends Array
                allLinkedGroups.sort() //prioritizing smaller linked groups
 
 
-               let linkedGroupsSum = []
-               linkedGroupsSum.mines = 0
+               let linkedGroupsSum: LinkedGroup = Object.assign([], { mines: 0 });
 
                for (let linkedGroup of allLinkedGroups)
                {
                   if (arrIncludesSomeItemOfArr(linkedGroupsSum, linkedGroup) == false) //adding
                   {
-                     linkedGroupsSum.mines += linkedGroup.mines;
+                     linkedGroupsSum.mines += linkedGroup.mines ?? 0;
                      linkedGroupsSum.push(...linkedGroup);
                   }
                }
@@ -601,20 +616,22 @@ class Minefield extends Array
    }
    /**
     * Checks the minefield to find hints about its state.
-    * @param {Boolean} accurateHint If false, the function will also return the nearby cells around the hint. If true, it will only return the exact cells to open/flag.
-    * @returns {Array<Array>} An array of arrays of hint cells, along with a property "safe" which indicates if the hint cells are safe to open or mines to flag.
+    * @param {boolean} accurateHint If false, the function will also return the nearby cells around the hint. If true, it will only return the exact cells to open/flag.
+    * @returns {Hint[]} An array of arrays of hint cells, along with a property "safe" which indicates if the hint cells are safe to open or mines to flag.
     * @example minefield.getHint(true, false)
     * //[ [{...}, {...}, safe: true], [{...}, {...}, safe: false] ]
     */
-   getHints(accurateHint=false)
+   getHints(accurateHint: boolean=false): Hint[]
    {
+      type HintIndex = number[] & {safe: boolean}
+
       let flat = this.concatenate();
 
-      let hintPositions = [];
-      let accurateHintPositions = [];
+      let hintPositions: HintIndex[] = [];
+      let accurateHintPositions: HintIndex[] = [];
 
-      let allLinkedGroups = [];
-      let importantCells = [];
+      let allLinkedGroups: LinkedGroup[] = [];
+      let importantCells: number[] = [];
 
       flat.forEach((cell, i) =>
       {
@@ -643,17 +660,15 @@ class Minefield extends Array
 
                if (nearbyClosedCells.length > 0)
                {
-                  hintPositions.push([...nearbyCells, i])
-                  hintPositions.at(-1).safe = true
-                  accurateHintPositions.push(nearbyClosedCells);
-                  accurateHintPositions.at(-1).safe = true
+                  hintPositions.push( Object.assign([...nearbyCells, i], {safe: true}) )
+                  accurateHintPositions.push( Object.assign(nearbyClosedCells, {safe: true}) );
                }
             }
             else
             {
                let nearbyCells = this.#getNearbyCellsIndex(i);
 
-               let nearbyClosedCellsCount = 0, nearbyFlaggedCellsCount = 0, nearbyUnflaggedCells = [];
+               let nearbyClosedCellsCount = 0, nearbyFlaggedCellsCount = 0, nearbyUnflaggedCells: LinkedGroup = Object.assign([], { mines: 0 });
 
                for (let nearbyCell of nearbyCells)
                {
@@ -670,18 +685,14 @@ class Minefield extends Array
                {
                   if (flat[i].mines == nearbyFlaggedCellsCount) //all nearby cells are fine (except for the flagged cells) > open them
                   {
-                     hintPositions.push([...nearbyCells, i])
-                     hintPositions.at(-1).safe = true
-                     accurateHintPositions.push(nearbyUnflaggedCells);
-                     accurateHintPositions.at(-1).safe = true
+                     hintPositions.push( Object.assign([...nearbyCells, i], {safe: true}) )
+                     accurateHintPositions.push( Object.assign(nearbyUnflaggedCells, {safe: true}) )
                   }
 
                   if (flat[i].mines == nearbyClosedCellsCount) //all nearby closed cells are mines > flag them all
                   {
-                     hintPositions.push([...nearbyCells, i])
-                     hintPositions.at(-1).safe = false
-                     accurateHintPositions.push(nearbyUnflaggedCells);
-                     accurateHintPositions.at(-1).safe = false
+                     hintPositions.push( Object.assign([...nearbyCells, i], {safe: false}) )
+                     accurateHintPositions.push( Object.assign(nearbyUnflaggedCells, {safe: false}) );
                   }
 
                   if (flat[i].mines > nearbyFlaggedCellsCount) //all nearby not flagged cells have some mines > phantom flagging
@@ -705,8 +716,7 @@ class Minefield extends Array
 
          for (let i of importantCells)
          {
-            let linkedGroupsSum = [];
-            linkedGroupsSum.mines = 0
+            let linkedGroupsSum: LinkedGroup = Object.assign([], { mines: 0 });
 
             let nearbyClosedCells = [];
             let nearbyFlaggedCellsCount = 0;
@@ -721,8 +731,8 @@ class Minefield extends Array
             {
                if (arrIncludesEveryItemOfArr(nearbyClosedCells, linkedGroup) && nearbyClosedCells.length != linkedGroup.length)
                {
-                  let shiftLinkedGroup = nearbyClosedCells.filter(cell => linkedGroup.includes(cell) == false); //shifting
-                  shiftLinkedGroup.mines = flat[i].mines - linkedGroup.mines - nearbyFlaggedCellsCount;
+                  let shiftLinkedGroup: LinkedGroup = Object.assign( nearbyClosedCells.filter(cell => linkedGroup.includes(cell) == false), //shifting
+                  { mines: flat[i].mines - linkedGroup.mines - nearbyFlaggedCellsCount });
 
                   if (shiftLinkedGroup.length > 0 && shiftLinkedGroup.mines > 0 && matrixIncludesArr(allLinkedGroups, shiftLinkedGroup) == false)
                   {
@@ -778,10 +788,8 @@ class Minefield extends Array
 
                   if (flat[i].mines == nearbyFlaggedCellsCount + linkedGroup.mines + nearbyUnknownCells.length) //all unknown cells are mines > flag them all
                   {
-                     hintPositions.push([...new Set([...nearbyCells, ...pgCenterNearbyCells, i])]);
-                     hintPositions.at(-1).safe = false
-                     accurateHintPositions.push(nearbyUnknownCells);
-                     accurateHintPositions.at(-1).safe = false
+                     hintPositions.push( Object.assign([...new Set([...nearbyCells, ...pgCenterNearbyCells, i])], {safe: false}) );
+                     accurateHintPositions.push( Object.assign(nearbyUnknownCells, {safe: false}) );
                   }
                   else if (flat[i].mines == nearbyFlaggedCellsCount + linkedGroup.mines - linkedGroupUncontainedCellsCount) //all unknown cells are clear > open them
                   {
@@ -789,10 +797,8 @@ class Minefield extends Array
 
                      if (nearbyUnknownCells.length > 0)
                      {
-                        hintPositions.push([...new Set([...nearbyCells, ...pgCenterNearbyCells, i])]);
-                        hintPositions.at(-1).safe = true
-                        accurateHintPositions.push(nearbyUnknownCells);
-                        accurateHintPositions.at(-1).safe = true
+                        hintPositions.push( Object.assign([...new Set([...nearbyCells, ...pgCenterNearbyCells, i])], {safe: true}) );
+                        accurateHintPositions.push( Object.assign(nearbyUnknownCells, {safe: true}) );
                      }
                   }
                }
@@ -822,10 +828,8 @@ class Minefield extends Array
 
          if (closedCells.length > 0)
          {
-            hintPositions.push(closedCells);
-            hintPositions.at(-1).safe = true
-            accurateHintPositions.push(closedCells);
-            accurateHintPositions.at(-1).safe = true
+            hintPositions.push( Object.assign(closedCells, {safe: true}) );
+            accurateHintPositions.push( Object.assign(closedCells, {safe: true}) );
          }
       }
       else
@@ -834,8 +838,7 @@ class Minefield extends Array
          allLinkedGroups.sort()
 
 
-         let linkedGroupsSum = []
-         linkedGroupsSum.mines = 0
+         let linkedGroupsSum: LinkedGroup = Object.assign([], { mines: 0 });
 
          for (let linkedGroup of allLinkedGroups)
          {
@@ -865,10 +868,8 @@ class Minefield extends Array
 
                if (safeCells.length > 0)
                {
-                  hintPositions.push(safeCells);
-                  hintPositions.at(-1).safe = true
-                  accurateHintPositions.push(safeCells);
-                  accurateHintPositions.at(-1).safe = true
+                  hintPositions.push( Object.assign(safeCells, {safe: true}) );
+                  accurateHintPositions.push( Object.assign(safeCells, {safe: true}) );
                }
             }
          }
@@ -877,18 +878,22 @@ class Minefield extends Array
 
       let hints = (accurateHint ? accurateHintPositions : hintPositions) ?? [];
 
-      for (let hint of hints)
+      let hintCells: Hint[] = []
+
+      for (let i=0; i<hints.length; i++)
       {
-         for (let i=0; i<hint.length; i++)
+         hintCells[i] = Object.assign([], {safe: hints[i].safe})
+
+         for (let index of hints[i])
          {
-            hint[i] = this.cellAt(this.#indexToPosition(hint[i]))
+            hintCells[i].push( this.cellAt(this.#indexToPosition( index )) )
          }
       }
 
-      return hints
+      return hintCells
    }
 
-   #getNearbyCellsIndex(index, includeSelf=false)
+   #getNearbyCellsIndex(index: number, includeSelf: boolean=false)
    {
       let nearbyCells = [];
 
@@ -918,7 +923,7 @@ class Minefield extends Array
 
       return nearbyCells;
    }
-   #getEmptyZoneIndex(index, includeFlags=false)
+   #getEmptyZoneIndex(index: number, includeFlags: boolean=false)
    {
       let flat = this.concatenate()
       let emptyZone = new Set([index]);
@@ -944,14 +949,14 @@ class Minefield extends Array
 
    /**
     * Finds the position of the cells directly around a given cell.
-    * @param {Array<Number>} position The position of the desired cell "[row, col]".
-    * @param {Number} position.row The row of the desired cell.
-    * @param {Number} position.col The column of the desired cell.
-    * @param {Boolean} includeSelf If true, also include the position of the given cell.
-    * @returns {Array} An Array containing the cells directly around the given one.
+    * @param {number[]} position The position of the desired cell "[row, col]".
+    * @param {number} position.row The row of the desired cell.
+    * @param {number} position.col The column of the desired cell.
+    * @param {boolean} includeSelf If true, also include the position of the given cell.
+    * @returns {Cell[]} An Array containing the cells directly around the given one.
     * @throws If the cell position is invalid.
     */
-   getNearbyCells([row, col], includeSelf=false)
+   getNearbyCells([row, col]: number[], includeSelf: boolean=false): Cell[]
    {
       [row, col] = this.#validatePosition(row, col)
 
@@ -972,13 +977,13 @@ class Minefield extends Array
       return nearbyCells;
    }
 
-   #validatePosition(...position)
+   #validatePosition(...position: number[] | number[][]): number[]
    {
       let row, col;
 
       try
       {
-         position = [].concat(...position).flat().map(val => Math.trunc(Math.abs(+val)))
+         position = ([] as number[]).concat(...position).flat().map(val => Math.trunc(Math.abs(+val)))
 
          if (position.some(val => isNaN(val))) throw 0;
 
@@ -997,26 +1002,25 @@ class Minefield extends Array
 
    /**
     * Shorthand for getting a cell by doing "minefield.cellAt(position)" instead of "minefield[ position[0] ][ position[1] ]".
-    * @param {Array<Number>} position The position of the desired cell to start from. Row and column can be either in an array or passed as-is. If given only one value, it is assumed that that value is the index of the concatenated minefield.
-    * @returns {Object} The cell object at the given position.
+    * @param {number[] | number[][]} position The position of the desired cell to start from. Row and column can be either in an array or passed as-is. If given only one value, it is assumed that that value is the index of the concatenated minefield.
+    * @returns {Cell} The cell object at the given position.
     */
-   cellAt(...position)
+   cellAt(...position: number[] | number[][]): Cell
    {
-      position = [].concat(...position)
+      position = ([] as number[]).concat(...position)
       if (position.length == 1)
       {
-         console.log(position)
          let pos = this.#indexToPosition(position[0])
          return this[pos[0]][pos[1]]
       }
       return this[position[0]][position[1]]
    }
 
-   #indexToPosition(index)
+   #indexToPosition(index: number): number[]
    {
       return [Math.floor(index / this.cols), index % this.cols]
    }
-   #positionToIndex([row, col])
+   #positionToIndex([row, col]: number[]): number
    {
       return row*this.cols + col
    }
@@ -1024,9 +1028,9 @@ class Minefield extends Array
 
 
    /**
-    * @returns {Boolean} a Boolean value that indicates whether the game is new (before the first move).
+    * @returns {boolean} a Boolean value that indicates whether the game is new (before the first move).
     */
-   isNew()
+   isNew(): boolean
    {
       for (let row of this)
       {
@@ -1039,9 +1043,9 @@ class Minefield extends Array
       return true
    }
    /**
-    * @returns {Boolean} a Boolean value that indicates whether the game is going on (after the first move, before game over).
+    * @returns {boolean} a Boolean value that indicates whether the game is going on (after the first move, before game over).
     */
-   isGoingOn()
+   isGoingOn(): boolean
    {
       let foundClosedEmpty = false;
       let foundOpen = false;
@@ -1062,9 +1066,9 @@ class Minefield extends Array
       return foundOpen && foundClosedEmpty
    }
    /**
-    * @returns {Boolean} a Boolean value that indicates whether the game is over (both cleared or lost).
+    * @returns {boolean} a Boolean value that indicates whether the game is over (both cleared or lost).
     */
-   isOver()
+   isOver(): boolean
    {
       let foundClosedEmpty = false;
 
@@ -1080,9 +1084,9 @@ class Minefield extends Array
       return foundClosedEmpty == false;
    }
    /**
-    * @returns {Boolean} a Boolean value that indicates whether the minefield has been cleared (no mines opened).
+    * @returns {boolean} a Boolean value that indicates whether the minefield has been cleared (no mines opened).
     */
-   isCleared()
+   isCleared(): boolean
    {
       for (let row of this)
       {
@@ -1095,9 +1099,9 @@ class Minefield extends Array
       return true;
    }
    /**
-    * @returns {Boolean} a Boolean value that indicates whether a mine has been opened in the current minefield.
+    * @returns {boolean} a Boolean value that indicates whether a mine has been opened in the current minefield.
     */
-   isLost()
+   isLost(): boolean
    {
       for (let row of this)
       {
@@ -1121,20 +1125,20 @@ class Minefield extends Array
     *  - [0-8]: An open cell, with its nearby mines number
     *
     * @param {Object} opts Optional settings.
-    * @param {Boolean} opts.unicode Whether to replace various characters with unicode symbols for better viewing.
-    * @param {Boolean} opts.positions Whether to include the grid row and column positions.
-    * @param {Boolean} opts.color Whether to include command line colors in the visualization.
-    * @param {Array<Array<Number>>} opts.highlight An array of positions "[[row, col], [row2, col2], ...]" of cells to highlight.
-    * @param {Boolean} opts.uncover Whether to show every cell as if they were open.
-    * @param {Boolean} opts.log Whether to log the visualization.
-    * @returns {String} The visualization string.
+    * @param {boolean} opts.unicode Whether to replace various characters with unicode symbols for better viewing.
+    * @param {boolean} opts.positions Whether to include the grid row and column positions.
+    * @param {boolean} opts.color Whether to include command line colors in the visualization.
+    * @param {number[][]} opts.highlight An array of positions "[[row, col], [row2, col2], ...]" of cells to highlight.
+    * @param {boolean} opts.uncover Whether to show every cell as if they were open.
+    * @param {boolean} opts.log Whether to log the visualization.
+    * @returns {string} The visualization string.
     */
-   visualize({unicode=false, positions=false, color=false, highlight=[], uncover=false, log=true} = {})
+   visualize({unicode=false, positions=false, color=false, highlight=[], uncover=false, log=true}: {unicode?: boolean, positions?: boolean, color?: boolean, highlight?: number[][], uncover?: boolean, log?: boolean} = {}): string
    {
       const EMPTY = unicode ?  "·" : "0"
       const CLOSED = unicode ? "■" : "?"
-      const FLAG = unicode ?   "⚑" : "F"
-      const MINE = unicode ?   "✸" : "X"
+      const FLAG = unicode ?   "►" : "F"
+      const MINE = unicode ?   "*" : "X"
 
       const CORNER = unicode ?       "×" : "x"
       const VERTICAL = unicode ?     "│" : "|"
@@ -1146,13 +1150,11 @@ class Minefield extends Array
          END: "\x1b[0m",
 
          ROW: {
-            num: colorByNumber,
             blackbg: "\x1b[40m",
             bright:  "\x1b[1m",
          },
 
          COL: {
-            num: colorByNumber,
             redfg:     "\x1b[31m",
             greenfg:   "\x1b[32m",
             yellowfg:  "\x1b[33m",
@@ -1164,13 +1166,19 @@ class Minefield extends Array
          HIGHLIGHT: "\x1b[7m"
       }
 
-
-      function colorByNumber(n)
+      function atBackground(n: number): string
       {
-         let colors = Object.values(this).slice(1)
+         let colors = Object.values(COLORS.ROW)
          let choice = colors[n % colors.length]
          return choice ?? ""
       }
+      function atForeground(n: number): string
+      {
+         let colors = Object.values(COLORS.COL)
+         let choice = colors[n % colors.length]
+         return choice ?? ""
+      }
+
 
       const MAXROWCHARS = positions ? Math.ceil(Math.log10(this.rows)) : 1
       const MAXCOLCHARS = positions ? Math.ceil(Math.log10(this.cols)) : 1
@@ -1183,7 +1191,7 @@ class Minefield extends Array
 
          for (let i=0; i<this.cols; i++)
          {
-            if (color) text += COLORS.COL.num(i)
+            if (color) text += atForeground(i)
 
             text += i.toString().padStart(i == 0 ? 1 : MAXCOLCHARS)
 
@@ -1199,7 +1207,7 @@ class Minefield extends Array
 
       for (let i=0; i<this.rows; i++)
       {
-         if (color) text += COLORS.ROW.num(i)
+         if (color) text += atBackground(i)
          if (positions) text += i.toString().padStart(MAXROWCHARS) + " " + VERTICAL + " "
 
          for (let j=0; j<this.cols; j++)
@@ -1215,12 +1223,12 @@ class Minefield extends Array
             else if (cell.mines == 0) char += EMPTY;
             else char += cell.mines;
 
-            if (color) text += COLORS.ROW.num(i) + COLORS.COL.num(j)
+            if (color) text += atBackground(i) + atForeground(j)
 
             if (matrixIncludesArr(highlight, [i, j]))
             {
                text += COLORS.HIGHLIGHT + char + COLORS.END
-               if (color) text += COLORS.ROW.num(i) + COLORS.COL.num(j)
+               if (color) text += atBackground(i) + atForeground(j)
             }
             else
             {
@@ -1245,9 +1253,9 @@ class Minefield extends Array
 
 
    /**
-    * @returns {Number} The number of rows of the current minefield.
+    * @returns {number} The number of rows of the current minefield.
     */
-   get rows()
+   get rows(): number
    {
       return this.length
    }
@@ -1255,10 +1263,10 @@ class Minefield extends Array
     * Either removes rows from the minefield or adds empty ones.
     *
     * Then, resets the nearby mines number for every cell.
-    * @param {Number} rows The number of target rows.
+    * @param {number} rows The number of target rows.
     * @returns The number of rows has been changed.
     */
-   set rows(rows)
+   set rows(rows: number)
    {
       rows = parseIntRange(rows, 1)
 
@@ -1294,9 +1302,9 @@ class Minefield extends Array
    }
 
    /**
-    * @returns {Number} The number of columns of the current minefield.
+    * @returns {number} The number of columns of the current minefield.
     */
-   get cols()
+   get cols(): number
    {
       return this[0].length
    }
@@ -1304,10 +1312,10 @@ class Minefield extends Array
     * Either removes columns from the minefield or adds empty ones.
     *
     * Then, resets the nearby mines number for every cell.
-    * @param {Number} cols The number of target columns.
+    * @param {number} cols The number of target columns.
     * @returns The number of columns has been changed.
     */
-   set cols(cols)
+   set cols(cols: number)
    {
       cols = parseIntRange(cols, 1)
 
@@ -1346,9 +1354,9 @@ class Minefield extends Array
    }
 
    /**
-    * @returns {Number} The number of cells in the current minefield.
+    * @returns {number} The number of cells in the current minefield.
     */
-   get cells()
+   get cells(): number
    {
       return this.cols * this.rows
    }
@@ -1358,9 +1366,9 @@ class Minefield extends Array
     * Loops over the minefield to find any instance of a mine.
     *
     * Because of this, it's recommended to cache this value.
-    * @returns {Number} The number of mines in the current minefield.
+    * @returns {number} The number of mines in the current minefield.
     */
-   get mines()
+   get mines(): number
    {
       let minesCount = 0
 
@@ -1378,10 +1386,10 @@ class Minefield extends Array
     * Either removes random mines from the minefield or adds other ones at random positions.
     *
     * Then, resets the nearby mines number for every cell.
-    * @param {Number} mines The number of target mines.
+    * @param {number} mines The number of target mines.
     * @returns The number of mines has been changed.
     */
-   set mines(mines)
+   set mines(mines: number)
    {
       mines = parseIntRange(mines, 0, this.cells)
 
@@ -1413,9 +1421,9 @@ class Minefield extends Array
     * Loops over the minefield to find any instance of a flagged cell.
     *
     * Because of this, it's recommended to cache this value.
-    * @returns {Number} The number of flagged cells in the current minefield.
+    * @returns {number} The number of flagged cells in the current minefield.
     */
-   get flags()
+   get flags(): number
    {
       let flagsCount = 0;
 
@@ -1432,20 +1440,20 @@ class Minefield extends Array
 }
 
 
-function matrixIncludesArr(matrix, target)
+function matrixIncludesArr(matrix: any[][], target: any[]): boolean
 {
    return matrix.some(arr => arraysAreEqual(arr, target))
 }
-function arrIncludesEveryItemOfArr(arr1, arr2)
+function arrIncludesEveryItemOfArr(arr1: any[], arr2: any[]): boolean
 {
    return arr2.every(el => arr1.includes(el))
 }
-function arrIncludesSomeItemOfArr(arr1, arr2)
+function arrIncludesSomeItemOfArr(arr1: any[], arr2: any[]): boolean
 {
    return arr2.some(x => arr1.includes(x))
 }
 
-function arraysAreEqual(arr1, arr2)
+function arraysAreEqual(arr1: any[], arr2: any[]): boolean
 {
    if (arr1.length !== arr2.length) return false;
 
@@ -1457,9 +1465,9 @@ function arraysAreEqual(arr1, arr2)
    return true;
 }
 
-function parseIntRange(int, min=-Infinity, max=Infinity)
+function parseIntRange(int: number, min=-Infinity, max=Infinity): number
 {
-   int = parseInt(int, 10)
+   int = parseInt(int.toString(), 10)
    if (isNaN(int)) throw new Error("Parameter is not an Integer");
 
    if (int < min) return min
@@ -1469,4 +1477,4 @@ function parseIntRange(int, min=-Infinity, max=Infinity)
 }
 
 
-module.exports = Minefield
+export = Minefield

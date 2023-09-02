@@ -1,11 +1,11 @@
 {
-  "files": ["src/mineswift.js"],
+  "files": ["src/mineswift.ts"],
   "compilerOptions": {
-    "target": "ES6",
-    "allowJs": true,
+    "module": "CommonJS",
+    "target": "ES2022",
+    "outDir": "./dist",
+    "strict": true,
     "declaration": true,
-    "emitDeclarationOnly": true,
-    "outDir": "dist",
     "declarationMap": true
   }
 }
