@@ -19,8 +19,8 @@ class Minefield extends Array {
      * Remember that the number of rows is the height of the minefield, while the number of columns is the width.
      * @param {number} rows The number of rows of the minefield (1-based).
      * @param {number} cols The number of columns of the minefield (1-based).
-     * @param {Object} opts Optional settings.
-     * @param {number} opts.mines The number of total mines (default: rows*cols/5). If given an array of positions instead ("[[row, col], [row2, col2], ...]"), mines will be set in those, without randomizing.
+     * @param {object} opts Optional settings.
+     * @param {number | Position[]} opts.mines The number of total mines (default: rows*cols/5). If given an array of positions instead ("[[row, col], [row2, col2], ...]"), mines will be set in those, without randomizing.
      * @param {Function} opts.rng A function that returns a random decimal number between 0 and 1 (default: {@link Math.random}).
      * @returns {Minefield} A new Minefield object.
      */
@@ -157,8 +157,8 @@ class Minefield extends Array {
     }
     /**
      * Opens a given cell and may open nearby ones following the minesweeper game rules.
-     * @param {number[]} position The position of the cell to open "[row, col]".
-     * @param {Object} opts Optional settings.
+     * @param {Position} position The position of the cell to open "[row, col]".
+     * @param {object} opts Optional settings.
      * @param {boolean} opts.firstMove If true, and a bomb is opened, it will be moved in another cell starting from 0 (default: {@link isNew()}).
      * @param {boolean} opts.nearbyOpening Allows the opening of nearby cells if the given cell is already open and its nearby mines number matches the number of nearby flagged cells.
      * @param {boolean} opts.nearbyFlagging Allows the flagging of nearby cells if the given cell is already open and its nearby mines number matches the number of nearby closed cells.
@@ -232,7 +232,7 @@ class Minefield extends Array {
      * WARNING! This method will take more time the more the minefield is big. However it is highly optimized to mitigate this as much as possible.
      *
      * Note that the algorithm isn't perfect and it might return false on really hard but still solvable minefields. Although, it's worth noting that encountering those is really unlikely.
-     * @param {number[]} position The position of the cell to start from "[row, col]". If given an empty array, will start from the current state.
+     * @param {Position} position The position of the cell to start from "[row, col]". If given an empty array, will start from the current state.
      * @param {number} position.row The row of the cell to start from.
      * @param {number} position.col The column of the cell to start from.
      * @param {boolean} restore Whether to restore the Minefield to all cells closed at the end.
@@ -681,7 +681,7 @@ class Minefield extends Array {
     }
     /**
      * Finds the position of the cells directly around a given cell.
-     * @param {number[]} position The position of the desired cell "[row, col]".
+     * @param {Position} position The position of the desired cell "[row, col]".
      * @param {number} position.row The row of the desired cell.
      * @param {number} position.col The column of the desired cell.
      * @param {boolean} includeSelf If true, also include the position of the given cell.
@@ -712,12 +712,12 @@ class Minefield extends Array {
         return nearbyCells;
     }
     #validatePosition(...position) {
-        let row, col;
+        let [row, col] = [].concat(...position);
         try {
-            position = [].concat(...position).flat().map(val => Math.trunc(Math.abs(+val)));
-            if (position.some(val => isNaN(val)))
+            row = Math.trunc(Math.abs(+row));
+            col = Math.trunc(Math.abs(+col));
+            if (isNaN(row) || isNaN(col))
                 throw 0;
-            [row, col] = position;
         }
         catch {
             throw new Error("Position is invalid");
@@ -726,19 +726,17 @@ class Minefield extends Array {
             throw new Error(`Row position is undefined (${row})`);
         if (col < 0 || col > this.cols - 1)
             throw new Error(`Column position is undefined (${col})`);
-        return position;
+        return [row, col];
     }
     /**
      * Shorthand for getting a cell by doing "minefield.cellAt(position)" instead of "minefield[ position[0] ][ position[1] ]".
-     * @param {number[] | number[][]} position The position of the desired cell to start from. Row and column can be either in an array or passed as-is. If given only one value, it is assumed that that value is the index of the concatenated minefield.
+     * @param {Position | [Position]} position The position of the desired cell to start from. Row and column can be either in an array or passed as-is. If given only one value, it is assumed that that value is the index of the concatenated minefield.
      * @returns {Cell} The cell object at the given position.
      */
     cellAt(...position) {
         position = [].concat(...position);
-        if (position.length == 1) {
-            let pos = this.#indexToPosition(position[0]);
-            return this[pos[0]][pos[1]];
-        }
+        if (position.length == 1)
+            position = this.#indexToPosition(position[0]);
         return this[position[0]][position[1]];
     }
     #indexToPosition(index) {
@@ -825,11 +823,11 @@ class Minefield extends Array {
      *  - X: An open mine
      *  - [0-8]: An open cell, with its nearby mines number
      *
-     * @param {Object} opts Optional settings.
+     * @param {object} opts Optional settings.
      * @param {boolean} opts.unicode Whether to replace various characters with unicode symbols for better viewing.
      * @param {boolean} opts.positions Whether to include the grid row and column positions.
      * @param {boolean} opts.color Whether to include command line colors in the visualization.
-     * @param {number[][]} opts.highlight An array of positions "[[row, col], [row2, col2], ...]" of cells to highlight.
+     * @param {Position[]} opts.highlight An array of positions "[[row, col], [row2, col2], ...]" of cells to highlight.
      * @param {boolean} opts.uncover Whether to show every cell as if they were open.
      * @param {boolean} opts.log Whether to log the visualization.
      * @returns {string} The visualization string.

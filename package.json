@@ -1,6 +1,6 @@
 {
   "name": "mineswift",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "An efficient node.js Minesweeper engine with zero dependencies that can be used to easily create minefields and play without having to code any logic.",
   "main": "dist/mineswift.js",
   "types": "dist/mineswift.d.ts",

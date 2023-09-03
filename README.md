@@ -136,6 +136,8 @@ Returns (and logs by default) a visually clear string of the minefield, useful f
 - **v1.5.0**
 <br>- Migration from JavaScript to TypeScript (completely, not just declaration files). This might introduce some bugs. Please report them if you find them by chance.
 <br>- Fixed some JSDOC types.
+  - v1.5.1
+  <br>- Fixed some type definitions.
 
 &nbsp;
 ## Found a bug and/or need help?
