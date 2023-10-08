@@ -30,12 +30,14 @@ declare class Minefield extends Array<Array<Cell>> {
      * Creates a new minefield with the given rows, columns and mines number (and randomizes the mines using the fisher-yates shuffle algorithm).
      *
      * Remember that the number of rows is the height of the minefield, while the number of columns is the width.
+     *
+     * If given an array of positions to the "mines" property ("[[row, col], [row2, col2], ...]"), mines will be set in those positions, without randomizing.
      * @param {number} rows The number of rows of the minefield (1-based).
      * @param {number} cols The number of columns of the minefield (1-based).
      * @param {object} opts Optional settings.
      * @param {number | Position[]} opts.mines The number of total mines (default: rows*cols/5). If given an array of positions instead ("[[row, col], [row2, col2], ...]"), mines will be set in those, without randomizing.
      * @param {Function} opts.rng A function that returns a random decimal number between 0 and 1 (default: {@link Math.random}).
-     * @returns {Minefield} A new Minefield object.
+     * @returns A new Minefield object.
      */
     constructor(rows: number, cols: number, { mines, rng }?: {
         mines?: number | Position[];
@@ -79,7 +81,7 @@ declare class Minefield extends Array<Array<Cell>> {
      * Opens a given cell and may open nearby ones following the minesweeper game rules.
      * @param {Position} position The position of the cell to open "[row, col]".
      * @param {object} opts Optional settings.
-     * @param {boolean} opts.firstMove If true, and a bomb is opened, it will be moved in another cell starting from 0 (default: {@link isNew()}).
+     * @param {boolean} opts.firstMove If true, and the given position belongs to a mine, calls {@link moveMineToCorner()} on it (default: {@link isNew()}).
      * @param {boolean} opts.nearbyOpening Allows the opening of nearby cells if the given cell is already open and its nearby mines number matches the number of nearby flagged cells.
      * @param {boolean} opts.nearbyFlagging Allows the flagging of nearby cells if the given cell is already open and its nearby mines number matches the number of nearby closed cells.
      * @returns {Cell[]} An array containing arrays with the coordinates of the updated cells.
@@ -112,6 +114,14 @@ declare class Minefield extends Array<Array<Cell>> {
      * //[ [{...}, {...}, safe: true], [{...}, {...}, safe: false] ]
      */
     getHints(accurateHint?: boolean): Hint[];
+    /**
+     * If the given position belongs to a mine, moves it the to the first free cell of the minefield, starting from the top-left corner.
+     * @param {Position} position The position of the desired cell "[row, col]".
+     * @param {number} position.row The row of the desired cell.
+     * @param {number} position.col The column of the desired cell.
+     * @returns {Cell | null} The cell where the mine was moved to (or "null", if the given position didn't belong to a mine).
+     */
+    moveMineToCorner([row, col]: Position): Cell | null;
     /**
      * Finds the position of the cells directly around a given cell.
      * @param {Position} position The position of the desired cell "[row, col]".

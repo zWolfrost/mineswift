@@ -74,33 +74,34 @@ Returns (and logs by default) a visually clear string of the minefield, useful f
 
 *Also, the Minefield class extends the Array class, so you can also use the array default methods.*
 
-| Method           | Description
-|:-:               |:-
-| `new Minefield`  | Creates a new minefield with the given rows, columns and mines number (and randomizes them).
-| `randomize`      | Replaces the Minefield object with a new Minefield object with the same rows, columns and mines number.
-| `reset`          | Closes all cells and removes all flags from the minefield.
-| `resetMines`     | Resets the nearby-mines number for each cell in the current minefield.
-| `simplify`       | Returns a Number-Only 2D array version of the minefield.
-| `concatenate`    | Returns a version of the minefield where all the rows are concatenated in a single array. Useful for iterating each cell quickly.
-| `open`           | Opens a given cell and may open nearby ones following the minesweeper game rules.
-| `isSolvableFrom` | Returns a Boolean value that indicates whether the minefield is solvable from a given cell (by not guessing).
-| `getHints`       | Checks the minefield to find hints about its state.
-| `getNearbyCells` | Finds the position of the cells directly around a given cell.
-| `cellAt`         | Shorthand for getting a cell by doing `minefield.cellAt(position)` instead of `minefield[ position[0] ][ position[1] ]`.
-| `isNew`          | Returns a Boolean value that indicates whether the game is new (before the first move).
-| `isGoingOn`      | Returns a Boolean value that indicates whether the game is going on (after the first move, before game over).
-| `isOver`         | Returns a Boolean value that indicates whether the game is over (both cleared or lost).
-| `isCleared`      | Returns a Boolean value that indicates whether the minefield has been cleared (no mines opened).
-| `isLost`         | Returns a Boolean value that indicates whether a mine has been opened in the current minefield.
-| `visualize`      | Creates a visually clear string of the minefield, useful for debugging.
-| `rows`           | (getter) The number of rows of the current minefield.
-| `rows`           | (setter) Either removes rows from the minefield or adds empty ones.
-| `cols`           | (getter) The number of columns of the current minefield.
-| `cols`           | (setter) Either removes columns from the minefield or adds empty ones.
-| `cells`          | (getter) The number of cells in the current minefield.
-| `mines`          | (getter) The number of mines in the current minefield.
-| `mines`          | (setter) Either removes random mines from the minefield or adds other ones at random positions.
-| `flags`          | (getter) The number of flagged cells in the current minefield.
+| Method             | Description
+|:-:                 |:-
+| `new Minefield`    | Creates a new minefield with the given rows, columns and mines number (and randomizes them).
+| `randomize`        | Replaces the Minefield object with a new Minefield object with the same rows, columns and mines number.
+| `reset`            | Closes all cells and removes all flags from the minefield.
+| `resetMines`       | Resets the nearby-mines number for each cell in the current minefield.
+| `simplify`         | Returns a Number-Only 2D array version of the minefield.
+| `concatenate`      | Returns a version of the minefield where all the rows are concatenated in a single array. Useful for iterating each cell quickly.
+| `open`             | Opens a given cell and may open nearby ones following the minesweeper game rules.
+| `isSolvableFrom`   | Returns a Boolean value that indicates whether the minefield is solvable from a given cell (by not guessing).
+| `getHints`         | Checks the minefield to find hints about its state.
+| `moveMineToCorner` | Moves a mine to the to the first free cell of the minefield, starting from the top-left corner.
+| `getNearbyCells`   | Finds the position of the cells directly around a given cell.
+| `cellAt`           | Shorthand for getting a cell by doing `minefield.cellAt(position)` instead of `minefield[ position[0] ][ position[1] ]`.
+| `isNew`            | Returns a Boolean value that indicates whether the game is new (before the first move).
+| `isGoingOn`        | Returns a Boolean value that indicates whether the game is going on (after the first move, before game over).
+| `isOver`           | Returns a Boolean value that indicates whether the game is over (both cleared or lost).
+| `isCleared`        | Returns a Boolean value that indicates whether the minefield has been cleared (no mines opened).
+| `isLost`           | Returns a Boolean value that indicates whether a mine has been opened in the current minefield.
+| `visualize`        | Creates a visually clear string of the minefield, useful for debugging.
+| `rows`             | (getter) The number of rows of the current minefield.
+| `rows`             | (setter) Either removes rows from the minefield or adds empty ones.
+| `cols`             | (getter) The number of columns of the current minefield.
+| `cols`             | (setter) Either removes columns from the minefield or adds empty ones.
+| `cells`            | (getter) The number of cells in the current minefield.
+| `mines`            | (getter) The number of mines in the current minefield.
+| `mines`            | (setter) Either removes random mines from the minefield or adds other ones at random positions.
+| `flags`            | (getter) The number of flagged cells in the current minefield.
 
 &nbsp;
 ## Changelog & Breaking Changes
@@ -138,6 +139,9 @@ Returns (and logs by default) a visually clear string of the minefield, useful f
 <br>- Fixed some JSDOC types.
   - v1.5.1
   <br>- Fixed some type definitions.
+
+- **v1.6.0**
+<br>- Added `moveMineToCorner` method.
 
 &nbsp;
 ## Found a bug and/or need help?

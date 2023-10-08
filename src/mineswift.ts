@@ -36,12 +36,14 @@ class Minefield extends Array<Array<Cell>>
     * Creates a new minefield with the given rows, columns and mines number (and randomizes the mines using the fisher-yates shuffle algorithm).
     *
     * Remember that the number of rows is the height of the minefield, while the number of columns is the width.
+    *
+    * If given an array of positions to the "mines" property ("[[row, col], [row2, col2], ...]"), mines will be set in those positions, without randomizing.
     * @param {number} rows The number of rows of the minefield (1-based).
     * @param {number} cols The number of columns of the minefield (1-based).
     * @param {object} opts Optional settings.
     * @param {number | Position[]} opts.mines The number of total mines (default: rows*cols/5). If given an array of positions instead ("[[row, col], [row2, col2], ...]"), mines will be set in those, without randomizing.
     * @param {Function} opts.rng A function that returns a random decimal number between 0 and 1 (default: {@link Math.random}).
-    * @returns {Minefield} A new Minefield object.
+    * @returns A new Minefield object.
     */
    constructor(rows: number, cols: number, { mines = Math.floor(rows*cols/5), rng = Math.random }: { mines?: number | Position[], rng?: Function } = {})
    {
@@ -74,10 +76,10 @@ class Minefield extends Array<Array<Cell>>
          }
 
          //Add mines and assign nearby mines number for nearby cells
-         for (let pos of mines)
+         for (let [row, col] of mines)
          {
-            this.cellAt(pos).isMine = true
-            this.getNearbyCells(pos, true).forEach(cell => cell.mines++)
+            this[row][col].isMine = true
+            this.getNearbyCells([row, col], true).forEach(cell => cell.mines++)
          }
       }
       else
@@ -106,10 +108,10 @@ class Minefield extends Array<Array<Cell>>
          {
             let j = Math.floor(rng() * (i+1));
 
-            let [row, col] = this.#indexToPosition(i);
+            let [row1, col1] = this.#indexToPosition(i);
             let [row2, col2] = this.#indexToPosition(j);
 
-            [ this[row][col], this[row2][col2] ] = [ this[row2][col2], this[row][col] ];
+            [ this[row1][col1], this[row2][col2] ] = [ this[row2][col2], this[row1][col1] ];
          }
 
          //Assign position and nearby mines number for nearby cells
@@ -231,7 +233,7 @@ class Minefield extends Array<Array<Cell>>
     * Opens a given cell and may open nearby ones following the minesweeper game rules.
     * @param {Position} position The position of the cell to open "[row, col]".
     * @param {object} opts Optional settings.
-    * @param {boolean} opts.firstMove If true, and a bomb is opened, it will be moved in another cell starting from 0 (default: {@link isNew()}).
+    * @param {boolean} opts.firstMove If true, and the given position belongs to a mine, calls {@link moveMineToCorner()} on it (default: {@link isNew()}).
     * @param {boolean} opts.nearbyOpening Allows the opening of nearby cells if the given cell is already open and its nearby mines number matches the number of nearby flagged cells.
     * @param {boolean} opts.nearbyFlagging Allows the flagging of nearby cells if the given cell is already open and its nearby mines number matches the number of nearby closed cells.
     * @returns {Cell[]} An array containing arrays with the coordinates of the updated cells.
@@ -240,7 +242,8 @@ class Minefield extends Array<Array<Cell>>
    open([row, col]: Position, { firstMove=this.isNew(), nearbyOpening=false, nearbyFlagging=false }: { firstMove?: boolean, nearbyOpening?: boolean, nearbyFlagging?: boolean } = {}): Cell[]
    {
       let flat = this.concatenate();
-      let index = this.#positionToIndex(this.#validatePosition(row, col))
+      [row, col] = this.#validatePosition([row, col])
+      let index = this.#positionToIndex([row, col])
       let updatedCells: Cell[] = [];
 
       let flatOpenEmptyZone = (index: number) =>
@@ -259,27 +262,7 @@ class Minefield extends Array<Array<Cell>>
       {
          if (flat[index].isMine && firstMove)
          {
-            flat[index].isMine = false;
-
-            for (let nearbyCell of this.#getNearbyCellsIndex(index, true))
-            {
-               flat[nearbyCell].mines--
-            }
-
-            for (let i=0; i < flat.length; i++)
-            {
-               if (flat[i].isMine == false && i != index)
-               {
-                  flat[i].isMine = true;
-
-                  for (let nearbyCell of this.#getNearbyCellsIndex(i, true))
-                  {
-                     flat[nearbyCell].mines++
-                  }
-
-                  break;
-               }
-            }
+            this.moveMineToCorner([row, col])
          }
 
          flatOpenEmptyZone(index)
@@ -311,7 +294,7 @@ class Minefield extends Array<Array<Cell>>
                   }
                }
             }
-            if (nearbyFlagging)
+            else if (nearbyFlagging)
             {
                if (flat[index].mines == nearbyClosedCellsCount)
                {
@@ -345,7 +328,8 @@ class Minefield extends Array<Array<Cell>>
    {
       if (row !== undefined && col !== undefined)
       {
-         let firstCell = this.cellAt(this.#validatePosition(row, col))
+         [row, col] = this.#validatePosition([row, col])
+         let firstCell = this.cellAt([row, col])
          firstCell.isOpen = true
 
          if (firstCell.mines !== 0)
@@ -951,6 +935,44 @@ class Minefield extends Array<Array<Cell>>
 
 
    /**
+    * If the given position belongs to a mine, moves it the to the first free cell of the minefield, starting from the top-left corner.
+    * @param {Position} position The position of the desired cell "[row, col]".
+    * @param {number} position.row The row of the desired cell.
+    * @param {number} position.col The column of the desired cell.
+    * @returns {Cell | null} The cell where the mine was moved to (or "null", if the given position didn't belong to a mine).
+    */
+   moveMineToCorner([row, col]: Position): Cell | null
+   {
+      if (this[row][col].isMine)
+      {
+         this[row][col].isMine = false;
+
+
+         for (let nearbyCell of this.getNearbyCells([row, col], true)) nearbyCell.mines--
+
+
+         let flat = this.concatenate();
+         let index = this.#positionToIndex([row, col])
+
+         for (let i=0; i<this.cells; i++)
+         {
+            if (flat[i].isMine == false && i != index)
+            {
+               flat[i].isMine = true;
+
+               for (let nearbyCell of this.#getNearbyCellsIndex(i, true)) flat[nearbyCell].mines++
+
+               break;
+            }
+         }
+
+         return this.cellAt([row, col])
+      }
+
+      return null;
+   }
+
+   /**
     * Finds the position of the cells directly around a given cell.
     * @param {Position} position The position of the desired cell "[row, col]".
     * @param {number} position.row The row of the desired cell.
@@ -961,7 +983,7 @@ class Minefield extends Array<Array<Cell>>
     */
    getNearbyCells([row, col]: Position, includeSelf: boolean=false): Cell[]
    {
-      [row, col] = this.#validatePosition(row, col)
+      [row, col] = this.#validatePosition([row, col])
 
       let nearbyCells = [];
 
@@ -980,10 +1002,8 @@ class Minefield extends Array<Array<Cell>>
       return nearbyCells;
    }
 
-   #validatePosition(...position: Position | [Position]): Position
+   #validatePosition([row, col]: Position): Position
    {
-      let [row, col] = ([] as number[]).concat(...position) as Position
-
       try
       {
          row = Math.trunc(Math.abs(+row))
@@ -1018,7 +1038,7 @@ class Minefield extends Array<Array<Cell>>
 
    #indexToPosition(index: number): Position
    {
-      return [Math.floor(index / this.cols), index % this.cols]
+      return [Math.trunc(index / this.cols), index % this.cols]
    }
    #positionToIndex([row, col]: Position): number
    {
